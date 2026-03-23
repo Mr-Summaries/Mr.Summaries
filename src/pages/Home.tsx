@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useDeferredValue, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Search, BookOpen, Plus } from 'lucide-react';
-import { databases, APPWRITE_CONFIG } from '../lib/appwrite';
+import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
 import { useAuthStore } from '../store/useAuthStore';
 import { CourseModal } from '../components/CourseModal';
 
 export const Home = () => {
   const { user, isAdmin } = useAuthStore();
   const [courses, setCourses] = useState<any[]>([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       setErrorMsg(null);
       const res = await databases.listDocuments(
@@ -23,6 +25,22 @@ export const Home = () => {
       // Sort alphabetically
       const sorted = res.documents.sort((a, b) => a.name.localeCompare(b.name, 'he'));
       setCourses(sorted);
+
+      // Fetch enrollments if user is logged in
+      if (user) {
+        try {
+          const enrollmentRes = await databases.listDocuments(
+            APPWRITE_CONFIG.databaseId,
+            APPWRITE_CONFIG.enrollmentsCollectionId,
+            [Query.equal('userID', user.$id)]
+          );
+          setEnrolledCourseIds(enrollmentRes.documents.map(e => e.courseID));
+        } catch (e) {
+          console.error('Error fetching enrollments', e);
+        }
+      } else {
+        setEnrolledCourseIds([]);
+      }
     } catch (error: any) {
       console.error('Error fetching courses', error);
       
@@ -35,15 +53,17 @@ export const Home = () => {
       
       setErrorMsg(errorMessage);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [fetchCourses, user]);
 
-  const filteredCourses = courses.filter(c => 
-    c.name.includes(search) || c.number.includes(search)
-  );
+  const filteredCourses = useMemo(() => {
+    return courses.filter(c => 
+      c.name.includes(deferredSearch) || c.number.includes(deferredSearch)
+    );
+  }, [courses, deferredSearch]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -144,8 +164,8 @@ export const Home = () => {
                 animate="show"
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                {courses.filter(c => localStorage.getItem(`enrolled_${c.$id}`)).length > 0 ? (
-                  courses.filter(c => localStorage.getItem(`enrolled_${c.$id}`)).map((course) => (
+                {courses.filter(c => enrolledCourseIds.includes(c.$id)).length > 0 ? (
+                  courses.filter(c => enrolledCourseIds.includes(c.$id)).map((course) => (
                     <motion.div key={course.$id} variants={itemVariants}>
                       <Link 
                         to={`/course/${course.$id}`}

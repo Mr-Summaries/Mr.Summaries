@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useDeferredValue, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
 import { Search, FileText, Plus, ArrowRight } from 'lucide-react';
@@ -11,10 +11,11 @@ export const Summaries = () => {
   const [summaries, setSummaries] = useState<any[]>([]);
   const [course, setCourse] = useState<any>(null);
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
-  const fetchSummaries = async () => {
+  const fetchSummaries = useCallback(async () => {
     try {
       const courseRes = await databases.getDocument(
         APPWRITE_CONFIG.databaseId,
@@ -34,15 +35,17 @@ export const Summaries = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchSummaries();
-  }, [id]);
+  }, [fetchSummaries]);
 
-  const filteredSummaries = summaries.filter(s => 
-    s.name.includes(search)
-  );
+  const filteredSummaries = useMemo(() => {
+    return summaries.filter(s => 
+      s.name.includes(deferredSearch)
+    );
+  }, [summaries, deferredSearch]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">טוען...</div>;

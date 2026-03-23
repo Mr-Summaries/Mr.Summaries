@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { databases, APPWRITE_CONFIG } from '../lib/appwrite';
+import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
 import { User, Mail, Shield, BookOpen, Trash2, Save } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -27,19 +27,41 @@ export const Profile = () => {
 
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!user) return;
       try {
-        const res = await databases.listDocuments(
+        // Fetch all enrollments for this user
+        const enrollmentRes = await databases.listDocuments(
           APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.coursesCollectionId
+          APPWRITE_CONFIG.enrollmentsCollectionId,
+          [Query.equal('userID', user.$id)]
         );
-        const enrolled = res.documents.filter(c => localStorage.getItem(`enrolled_${c.$id}`));
-        setEnrolledCourses(enrolled);
+
+        if (enrollmentRes.total > 0) {
+          const courseIds = enrollmentRes.documents.map(e => e.courseID);
+          
+          // Fetch the actual course documents
+          const coursesRes = await databases.listDocuments(
+            APPWRITE_CONFIG.databaseId,
+            APPWRITE_CONFIG.coursesCollectionId,
+            [Query.equal('$id', courseIds)]
+          );
+          
+          // Map enrollments to courses and store enrollment ID for removal
+          const enrolled = coursesRes.documents.map(course => {
+            const enrollment = enrollmentRes.documents.find(e => e.courseID === course.$id);
+            return { ...course, enrollmentId: enrollment?.$id };
+          });
+          
+          setEnrolledCourses(enrolled);
+        } else {
+          setEnrolledCourses([]);
+        }
       } catch (error) {
-        console.error('Error fetching courses', error);
+        console.error('Error fetching enrolled courses', error);
       }
     };
     fetchCourses();
-  }, []);
+  }, [user]);
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,9 +96,17 @@ export const Profile = () => {
     }
   };
 
-  const removeCourse = (courseId: string) => {
-    localStorage.removeItem(`enrolled_${courseId}`);
-    setEnrolledCourses(prev => prev.filter(c => c.$id !== courseId));
+  const removeCourse = async (enrollmentId: string) => {
+    try {
+      await databases.deleteDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.enrollmentsCollectionId,
+        enrollmentId
+      );
+      setEnrolledCourses(prev => prev.filter(c => c.enrollmentId !== enrollmentId));
+    } catch (error) {
+      console.error('Error removing course', error);
+    }
   };
 
   if (!user) {
@@ -205,7 +235,7 @@ export const Profile = () => {
                   <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{course.number}</div>
                 </div>
                 <button
-                  onClick={() => removeCourse(course.$id)}
+                  onClick={() => removeCourse(course.enrollmentId)}
                   className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                   title="הסר קורס"
                 >

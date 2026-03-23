@@ -39,7 +39,7 @@ const uploadContent = async (content: string, filename: string) => {
   return res.$id;
 };
 
-export const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, onSave, course }) => {
+export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onClose, onSave, course }) => {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
@@ -307,4 +307,4 @@ export const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, onSav
       )}
     </AnimatePresence>
   );
-};
+});

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'motion/react';
@@ -39,7 +39,7 @@ const parseSections = (text: string): SectionNode[] => {
 
 const proseClasses = "prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-indigo-700 dark:prose-h1:text-indigo-400 prose-h2:text-teal-700 dark:prose-h2:text-teal-400 prose-h3:text-rose-600 dark:prose-h3:text-rose-400 prose-h4:text-amber-600 dark:prose-h4:text-amber-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-emerald-700 dark:prose-strong:text-emerald-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-slate-800 dark:prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-blockquote:border-s-4 prose-blockquote:border-indigo-500 prose-blockquote:bg-indigo-50 dark:prose-blockquote:bg-indigo-900/20 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-e-lg prose-blockquote:text-indigo-900 dark:prose-blockquote:text-indigo-200 prose-li:marker:text-indigo-500 prose-img:rounded-xl prose-img:shadow-md";
 
-const SectionRenderer = ({ node, index }: { node: SectionNode, index: number }) => {
+const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index: number }) => {
   let containerClasses = '';
   if (node.level === 1) {
     containerClasses = 'p-6 sm:p-8 rounded-3xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-700/50 shadow-sm mb-8 backdrop-blur-xl';
@@ -75,10 +75,10 @@ const SectionRenderer = ({ node, index }: { node: SectionNode, index: number }) 
       )}
     </motion.div>
   );
-};
+});
 
-export const NestedMarkdown = ({ content, rightAlign = false }: { content: string, rightAlign?: boolean }) => {
-  const rootNodes = parseSections(content);
+export const NestedMarkdown = React.memo(({ content, rightAlign = false }: { content: string, rightAlign?: boolean }) => {
+  const rootNodes = useMemo(() => parseSections(content), [content]);
   
   return (
     <div className={`pb-12 ${rightAlign ? 'text-right' : 'text-left'}`} dir={rightAlign ? 'rtl' : 'ltr'}>
@@ -87,4 +87,4 @@ export const NestedMarkdown = ({ content, rightAlign = false }: { content: strin
       ))}
     </div>
   );
-};
+});

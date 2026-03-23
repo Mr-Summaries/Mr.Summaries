@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { databases, storage, APPWRITE_CONFIG } from '../lib/appwrite';
+import { databases, storage, APPWRITE_CONFIG, ID, Query } from '../lib/appwrite';
 import { BookOpen, FileText, List, Bookmark, Edit2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
@@ -16,12 +16,13 @@ export const Course = () => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   const currentTab = new URLSearchParams(location.search).get('tab') || 'overview';
 
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     try {
       const res = await databases.getDocument(
         APPWRITE_CONFIG.databaseId,
@@ -29,10 +30,32 @@ export const Course = () => {
         id!
       );
       setCourse(res);
-
-      // Check if enrolled (mock implementation)
-      const enrolled = localStorage.getItem(`enrolled_${id}`);
-      if (enrolled) setIsEnrolled(true);
+      
+      // Check if enrolled in database
+      if (user) {
+        try {
+          const enrollmentRes = await databases.listDocuments(
+            APPWRITE_CONFIG.databaseId,
+            APPWRITE_CONFIG.enrollmentsCollectionId,
+            [
+              Query.equal('userID', user.$id),
+              Query.equal('courseID', id!)
+            ]
+          );
+          if (enrollmentRes.total > 0) {
+            setIsEnrolled(true);
+            setEnrollmentId(enrollmentRes.documents[0].$id);
+          } else {
+            setIsEnrolled(false);
+            setEnrollmentId(null);
+          }
+        } catch (e) {
+          console.error('Error checking enrollment', e);
+        }
+      } else {
+        setIsEnrolled(false);
+        setEnrollmentId(null);
+      }
 
       let fileIdToFetch = '';
       if (currentTab === 'overview' && res.overviewID) fileIdToFetch = res.overviewID;
@@ -76,7 +99,7 @@ export const Course = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentTab]);
 
   useEffect(() => {
     if (id === 'summaries') {
@@ -86,15 +109,35 @@ export const Course = () => {
     }
 
     fetchCourse();
-  }, [id, currentTab]);
+  }, [fetchCourse, id]);
 
-  const toggleEnrollment = () => {
-    if (isEnrolled) {
-      localStorage.removeItem(`enrolled_${id}`);
-      setIsEnrolled(false);
-    } else {
-      localStorage.setItem(`enrolled_${id}`, 'true');
-      setIsEnrolled(true);
+  const toggleEnrollment = async () => {
+    if (!user) return;
+
+    try {
+      if (isEnrolled && enrollmentId) {
+        await databases.deleteDocument(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.enrollmentsCollectionId,
+          enrollmentId
+        );
+        setIsEnrolled(false);
+        setEnrollmentId(null);
+      } else {
+        const res = await databases.createDocument(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.enrollmentsCollectionId,
+          ID.unique(),
+          {
+            userID: user.$id,
+            courseID: id!
+          }
+        );
+        setIsEnrolled(true);
+        setEnrollmentId(res.$id);
+      }
+    } catch (error) {
+      console.error('Error toggling enrollment', error);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { databases, storage, APPWRITE_CONFIG } from '../lib/appwrite';
 import { ArrowRight, Edit2 } from 'lucide-react';
@@ -15,7 +15,7 @@ export const Summary = () => {
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const res = await databases.getDocument(
         APPWRITE_CONFIG.databaseId,
@@ -60,11 +60,11 @@ export const Summary = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchSummary();
-  }, [id]);
+  }, [fetchSummary]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">טוען...</div>;

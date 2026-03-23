@@ -40,7 +40,7 @@ const uploadContent = async (content: string, filename: string) => {
   return res.$id;
 };
 
-export const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, onSave, summary, courseId }) => {
+export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, onClose, onSave, summary, courseId }) => {
   const [name, setName] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
   const [content, setContent] = useState('');
@@ -232,4 +232,4 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, onS
       )}
     </AnimatePresence>
   );
-};
+});
