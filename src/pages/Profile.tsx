@@ -116,14 +116,14 @@ export const Profile = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8" dir="rtl">
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+        <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-600 dark:text-cyan-400">
           <User className="w-8 h-8" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">הפרופיל שלי</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">הפרופיל שלי</h1>
           <div className="flex items-center gap-2 mt-2">
-            <Shield className={`w-4 h-4 ${isAdmin ? 'text-emerald-500' : 'text-slate-400'}`} />
-            <span className={`text-sm font-medium ${isAdmin ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+            <Shield className={`w-4 h-4 ${isAdmin ? 'text-emerald-500' : 'text-zinc-400'}`} />
+            <span className={`text-sm font-medium ${isAdmin ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
               סטטוס: {isAdmin ? 'מנהל מערכת' : 'משתמש רגיל'}
             </span>
           </div>
@@ -141,26 +141,26 @@ export const Profile = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm"
+          className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
         >
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-indigo-500" />
+            <User className="w-5 h-5 text-cyan-500" />
             עדכון פרטים
           </h2>
           <form onSubmit={handleUpdateName} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">שם מלא</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">שם מלא</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <button
               type="submit"
               disabled={isUpdatingName || name === user.name}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors text-sm font-medium"
             >
               <Save className="w-4 h-4" />
               {isUpdatingName ? 'שומר...' : 'שמור שם'}
@@ -173,37 +173,37 @@ export const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm"
+          className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
         >
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Mail className="w-5 h-5 text-indigo-500" />
+            <Mail className="w-5 h-5 text-cyan-500" />
             עדכון אימייל
           </h2>
           <form onSubmit={handleUpdateEmail} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">אימייל חדש</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">אימייל חדש</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 dir="ltr"
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">סיסמה נוכחית (לאימות)</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">סיסמה נוכחית (לאימות)</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 dir="ltr"
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <button
               type="submit"
               disabled={isUpdatingEmail || !password || email === user.email}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors text-sm font-medium"
             >
               <Save className="w-4 h-4" />
               {isUpdatingEmail ? 'שומר...' : 'שמור אימייל'}
@@ -217,22 +217,22 @@ export const Profile = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm"
+        className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
       >
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-indigo-500" />
+          <BookOpen className="w-5 h-5 text-cyan-500" />
           ניהול קורסים
         </h2>
         
         {enrolledCourses.length > 0 ? (
           <div className="space-y-4">
             {enrolledCourses.map(course => (
-              <div key={course.$id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+              <div key={course.$id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50">
                 <div>
-                  <Link to={`/course/${course.$id}`} className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                  <Link to={`/course/${course.$id}`} className="font-semibold text-cyan-600 dark:text-cyan-400 hover:underline">
                     {course.name}
                   </Link>
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{course.number}</div>
+                  <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{course.number}</div>
                 </div>
                 <button
                   onClick={() => removeCourse(course.enrollmentId)}
@@ -245,7 +245,7 @@ export const Profile = () => {
             ))}
           </div>
         ) : (
-          <p className="text-slate-500 dark:text-slate-400">לא נרשמת לאף קורס עדיין.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">לא נרשמת לאף קורס עדיין.</p>
         )}
       </motion.div>
     </div>

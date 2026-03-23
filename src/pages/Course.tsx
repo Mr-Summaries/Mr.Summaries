@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useDeferredValue } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { databases, storage, APPWRITE_CONFIG, ID, Query } from '../lib/appwrite';
-import { BookOpen, FileText, List, Bookmark, Edit2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
+import { BookOpen, FileText, List, Bookmark, Edit2, BookmarkPlus, BookmarkCheck, Search, Plus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
@@ -19,6 +19,9 @@ export const Course = () => {
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [summaries, setSummaries] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
 
   const currentTab = new URLSearchParams(location.search).get('tab') || 'overview';
 
@@ -106,6 +109,25 @@ export const Course = () => {
     }
   }, [id, currentTab]);
 
+  const fetchSummaries = useCallback(async () => {
+    try {
+      const summariesRes = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.summariesCollectionId,
+        [Query.equal('courses', id!)]
+      );
+      setSummaries(summariesRes.documents);
+    } catch (error) {
+      console.error('Error fetching summaries', error);
+    }
+  }, [id]);
+
+  const filteredSummaries = useMemo(() => {
+    return summaries.filter(s => 
+      s.name.includes(deferredSearch)
+    );
+  }, [summaries, deferredSearch]);
+
   useEffect(() => {
     if (id === 'summaries') {
       // Handle the case where a broken link led here
@@ -114,7 +136,8 @@ export const Course = () => {
     }
 
     fetchCourse();
-  }, [fetchCourse, id]);
+    fetchSummaries();
+  }, [fetchCourse, fetchSummaries, id]);
 
   const toggleEnrollment = async () => {
     if (!user) return;
@@ -156,7 +179,7 @@ export const Course = () => {
 
   const tabs = [
     { id: 'overview', label: 'סקירה', icon: BookOpen, show: true },
-    { id: 'summaries', label: 'סיכומים', icon: FileText, show: true, isLink: true },
+    { id: 'summaries', label: 'סיכומים', icon: FileText, show: true },
     { id: 'definitions', label: 'הגדרות', icon: List, show: !!course.definitionsID },
     { id: 'claims', label: 'משפטים', icon: Bookmark, show: !!course.claimsID },
   ];
@@ -165,10 +188,10 @@ export const Course = () => {
     <div className="max-w-5xl mx-auto" dir="rtl">
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 mb-2">
+          <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
             {course.name}
           </h1>
-          <span className="inline-block bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
+          <span className="inline-block bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
             {course.number}
           </span>
         </div>
@@ -178,8 +201,8 @@ export const Course = () => {
               onClick={toggleEnrollment}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
                 isEnrolled 
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' 
-                  : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50'
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' 
+                  : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900/50'
               }`}
             >
               {isEnrolled ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
@@ -189,7 +212,7 @@ export const Course = () => {
           {isAdmin && (
             <button 
               onClick={() => setIsCourseModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
             >
               <Edit2 className="w-4 h-4" />
               ערוך קורס
@@ -198,32 +221,19 @@ export const Course = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
         {tabs.filter(t => t.show).map(tab => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
           
-          if (tab.isLink) {
-            return (
-              <Link
-                key={tab.id}
-                to={`/course/${id}/summaries`}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </Link>
-            );
-          }
-
           return (
             <Link
               key={tab.id}
               to={`/course/${id}?tab=${tab.id}`}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 isActive 
-                  ? 'bg-indigo-600 text-white shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-cyan-600 text-white shadow-sm' 
+                  : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -233,7 +243,58 @@ export const Course = () => {
         })}
       </div>
 
-      <NestedMarkdown content={content} rightAlign={course.rightAlign} />
+      {currentTab === 'summaries' ? (
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="relative w-full max-w-md">
+              <div className="absolute inset-y-0 right-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-zinc-400 mr-3" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
+                placeholder="חיפוש סיכומים..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {isAdmin && (
+              <button 
+                onClick={() => setIsSummaryModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus className="w-5 h-5" />
+                הוסף סיכום
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSummaries.map((summary) => (
+              <Link 
+                key={summary.$id} 
+                to={`/summary/${summary.$id}`}
+                className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
+              >
+                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                  {summary.name}
+                </h3>
+              </Link>
+            ))}
+            {filteredSummaries.length === 0 && (
+              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
+                לא נמצאו סיכומים התואמים את החיפוש.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <NestedMarkdown content={content} rightAlign={course.rightAlign} />
+      )}
 
       <CourseModal 
         isOpen={isCourseModalOpen} 
@@ -245,7 +306,7 @@ export const Course = () => {
       <SummaryModal 
         isOpen={isSummaryModalOpen} 
         onClose={() => setIsSummaryModalOpen(false)} 
-        onSave={() => {}} 
+        onSave={fetchSummaries} 
         courseId={id}
         courseNumber={course.number}
       />

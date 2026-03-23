@@ -11,7 +11,7 @@ const Login = lazy(() => import('./pages/Login').then(module => ({ default: modu
 const Profile = lazy(() => import('./pages/Profile').then(module => ({ default: module.Profile })));
 
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+  <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50">
     טוען...
   </div>
 );

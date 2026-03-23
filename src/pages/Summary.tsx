@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { SummaryModal } from '../components/SummaryModal';
+import { TableOfContents } from '../components/TableOfContents';
 
 export const Summary = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export const Summary = () => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [tocItems, setTocItems] = useState<{ id: string, title: string, level: number }[]>([]);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -92,36 +94,46 @@ export const Summary = () => {
   const courseNumber = summary?.courses?.number || (Array.isArray(summary?.courses) ? summary.courses[0]?.number : '');
 
   return (
-    <div className="max-w-5xl mx-auto" dir="rtl">
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          {courseId ? (
-            <Link to={`/course/${courseId}/summaries`} className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4">
-              <ArrowRight className="w-4 h-4" />
-              חזרה לסיכומים
-            </Link>
-          ) : (
-            <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4">
-              <ArrowRight className="w-4 h-4" />
-              חזרה לדף הבית
-            </Link>
-          )}
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 mb-2">
-            {summary.name}
-          </h1>
-        </div>
-        {isAdmin && (
-          <button 
-            onClick={() => setIsSummaryModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          >
-            <Edit2 className="w-4 h-4" />
-            ערוך סיכום
-          </button>
-        )}
-      </div>
+    <div className="max-w-7xl mx-auto px-4" dir="rtl">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-grow max-w-5xl">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              {courseId ? (
+                <Link to={`/course/${courseId}/summaries`} className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
+                  <ArrowRight className="w-4 h-4" />
+                  חזרה לסיכומים
+                </Link>
+              ) : (
+                <Link to="/" className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
+                  <ArrowRight className="w-4 h-4" />
+                  חזרה לדף הבית
+                </Link>
+              )}
+              <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+                {summary.name}
+              </h1>
+            </div>
+            {isAdmin && (
+              <button 
+                onClick={() => setIsSummaryModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <Edit2 className="w-4 h-4" />
+                ערוך סיכום
+              </button>
+            )}
+          </div>
 
-      <NestedMarkdown content={content} rightAlign={summary.rightAlign} />
+          <NestedMarkdown 
+            content={content} 
+            rightAlign={summary.rightAlign} 
+            onTOCChange={setTocItems}
+          />
+        </div>
+
+        <TableOfContents items={tocItems} />
+      </div>
 
       <SummaryModal 
         isOpen={isSummaryModalOpen} 

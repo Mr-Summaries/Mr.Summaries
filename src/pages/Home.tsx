@@ -88,7 +88,7 @@ export const Home = () => {
         transition={{ delay: 1, duration: 0.8, ease: "easeInOut" }}
         className="fixed z-40 pointer-events-none"
       >
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-indigo-600 dark:text-indigo-400 drop-shadow-sm whitespace-nowrap">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter bg-gradient-to-r from-cyan-500 to-emerald-400 bg-clip-text text-transparent drop-shadow-sm whitespace-nowrap">
           Mr.Summaries
         </h1>
       </motion.div>
@@ -101,11 +101,11 @@ export const Home = () => {
       >
         <div className="relative group">
           <div className="absolute inset-y-0 right-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400 mr-3" />
+            <Search className="h-5 w-5 text-zinc-400 mr-3" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-12 py-4 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl leading-5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg transition-all shadow-sm group-hover:shadow-md"
+            className="block w-full pl-10 pr-12 py-4 border border-zinc-200 dark:border-zinc-700/50 rounded-2xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-lg transition-all shadow-sm group-hover:shadow-md text-zinc-900 dark:text-zinc-100"
             placeholder="חיפוש קורסים וסיכומים..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -121,7 +121,7 @@ export const Home = () => {
           >
             <button 
               onClick={() => setIsCourseModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors shadow-sm"
             >
               <Plus className="w-5 h-5" />
               הוסף קורס
@@ -134,28 +134,17 @@ export const Home = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-4 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-md border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400"
+              className="p-4 bg-red-50 dark:bg-red-900/30 backdrop-blur-md border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400"
             >
               <p className="font-bold mb-1">שגיאת התחברות ל-Appwrite:</p>
               <p className="font-mono text-sm" dir="ltr">{errorMsg}</p>
-              <div className="mt-4 text-sm">
-                <p>אם השגיאה היא <strong>Failed to fetch</strong>, עליך להוסיף את כתובת האתר כ-Web Platform ב-Appwrite:</p>
-                <ol className="list-decimal list-inside mt-2 space-y-1">
-                  <li>היכנס ל-Appwrite ולחץ על הפרויקט שלך</li>
-                  <li>גלול מטה ל-<strong>Platforms</strong> ולחץ על <strong>Add Platform</strong> &gt; <strong>Web App</strong></li>
-                  <li>ב-Hostname, הדבק בדיוק את הכתובת הבאה (ללא https://):</li>
-                  <li className="font-mono bg-white/50 dark:bg-black/50 p-2 rounded mt-1 select-all" dir="ltr">
-                    {window.location.hostname}
-                  </li>
-                </ol>
-              </div>
             </motion.div>
           )}
 
           {user && (
             <section>
-              <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-indigo-500" />
+              <h2 className="text-2xl font-bold mb-6 text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <BookOpen className="w-6 h-6 text-cyan-500" />
                 הקורסים שלי
               </h2>
               <motion.div 
@@ -169,25 +158,25 @@ export const Home = () => {
                     <motion.div key={course.$id} variants={itemVariants}>
                       <Link 
                         to={`/course/${course.$id}`}
-                        className="block group p-6 rounded-2xl bg-indigo-50/80 dark:bg-indigo-900/20 backdrop-blur-md border border-indigo-100/50 dark:border-indigo-800/30 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
+                        className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                             {course.name}
                           </h3>
-                          <span className="text-xs font-mono bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md">
+                          <span className="text-xs font-mono bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-2 py-1 rounded-md">
                             {course.number}
                           </span>
                         </div>
-                        <p className="text-indigo-600/70 dark:text-indigo-300/70 text-sm line-clamp-2">
+                        <p className="text-cyan-600/70 dark:text-cyan-300/70 text-sm line-clamp-2">
                           לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                         </p>
                       </Link>
                     </motion.div>
                   ))
                 ) : (
-                  <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-100/50 dark:border-slate-700/50 shadow-sm opacity-60 col-span-full">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">אין קורסים רשומים עדיין.</p>
+                  <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm opacity-60 col-span-full">
+                    <p className="text-zinc-400 text-sm">אין קורסים רשומים עדיין.</p>
                   </motion.div>
                 )}
               </motion.div>
@@ -195,8 +184,8 @@ export const Home = () => {
           )}
 
           <section>
-            <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-slate-400" />
+            <h2 className="text-2xl font-bold mb-6 text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-zinc-500" />
               כל הקורסים
             </h2>
             <motion.div 
@@ -209,24 +198,24 @@ export const Home = () => {
                 <motion.div key={course.$id} variants={itemVariants}>
                   <Link 
                     to={`/course/${course.$id}`}
-                    className="block group p-6 rounded-2xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-100/50 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-900 transition-all"
+                    className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                         {course.name}
                       </h3>
-                      <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md">
+                      <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">
                         {course.number}
                       </span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">
+                    <p className="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2">
                       לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                     </p>
                   </Link>
                 </motion.div>
               ))}
               {filteredCourses.length === 0 && (
-                <motion.div variants={itemVariants} className="col-span-full text-center py-12 text-slate-500 dark:text-slate-400">
+                <motion.div variants={itemVariants} className="col-span-full text-center py-12 text-zinc-500">
                   לא נמצאו קורסים התואמים את החיפוש.
                 </motion.div>
               )}
