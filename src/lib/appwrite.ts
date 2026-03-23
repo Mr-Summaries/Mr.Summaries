@@ -12,6 +12,8 @@ export const APPWRITE_CONFIG = {
     databaseId: 'mr-summaries-db',
     coursesCollectionId: 'courses',
     summariesCollectionId: 'summaries',
+    lecturesCollectionId: 'lectures',
+    examplesCollectionId: 'examples',
     enrollmentsCollectionId: 'enrollments',
     adminsCollectionId: 'admins',
     storageBucketId: 'summaries-bk',
