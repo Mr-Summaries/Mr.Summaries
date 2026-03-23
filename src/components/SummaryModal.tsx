@@ -56,8 +56,38 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
   const [origContent, setOrigContent] = useState('');
   
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
+  const [isPdf, setIsPdf] = useState(false);
+  const [newPdfFile, setNewPdfFile] = useState<File | null>(null);
+
+  const handleDelete = async () => {
+    if (!summary || !confirm('האם אתה בטוח שברצונך למחוק סיכום זה?')) return;
+    setIsDeleting(true);
+    setError('');
+    try {
+      if (summary.fileID) {
+        try {
+          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, summary.fileID);
+        } catch (e) {
+          console.error('Error deleting file:', e);
+        }
+      }
+      await databases.deleteDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.summariesCollectionId,
+        summary.$id
+      );
+      onSave();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'שגיאה במחיקת הסיכום');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -67,9 +97,24 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         
         const loadContent = async () => {
           setIsLoadingContent(true);
-          const text = await fetchFileContent(summary.fileID);
-          setContent(text);
-          setOrigContent(text);
+          setIsPdf(false);
+          setNewPdfFile(null);
+          try {
+            const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, summary.fileID);
+            if (file.mimeType === 'application/pdf') {
+              setIsPdf(true);
+            } else {
+              const text = await fetchFileContent(summary.fileID);
+              setContent(text);
+              setOrigContent(text);
+            }
+          } catch (e) {
+            console.error('Error loading file:', e);
+            // Fallback to text if file metadata fetch fails
+            const text = await fetchFileContent(summary.fileID);
+            setContent(text);
+            setOrigContent(text);
+          }
           setIsLoadingContent(false);
         };
         loadContent();
@@ -78,6 +123,8 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         setRightAlign(false);
         setContent('');
         setOrigContent('');
+        setIsPdf(false);
+        setNewPdfFile(null);
       }
     }
   }, [summary, isOpen]);
@@ -94,7 +141,17 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
       const isCourseNumChanged = summary && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
       let finalFileId = summary?.fileID || '';
-      if (content !== origContent || isNameChanged || isCourseNumChanged) {
+      
+      if (isPdf) {
+        if (newPdfFile) {
+          const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
+          try {
+            await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, finalFileId);
+          } catch (e) {}
+          const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, newPdfFile);
+          finalFileId = res.$id;
+        }
+      } else if (content !== origContent || isNameChanged || isCourseNumChanged) {
         const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
         const filename = `Summary-${summaryName}-${courseNum}.md`;
         finalFileId = content.trim() ? await uploadContent(content, filename, id) : '';
@@ -107,7 +164,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
       };
 
       if (!summary && courseId) {
-        data.courseID = courseId;
+        data.courses = courseId;
       }
 
       if (summary) {
@@ -184,23 +241,50 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="rightAlign"
-                  checked={rightAlign}
-                  onChange={(e) => setRightAlign(e.target.checked)}
-                  className="w-5 h-5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
-                />
-                <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  יישור לימין (RTL)
-                </label>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rightAlign"
+                    checked={rightAlign}
+                    onChange={(e) => setRightAlign(e.target.checked)}
+                    className="w-5 h-5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    יישור לימין (RTL)
+                  </label>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">סוג תוכן:</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPdf(false)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!isPdf ? 'bg-cyan-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+                    >
+                      Markdown
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPdf(true)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isPdf ? 'bg-cyan-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+                    >
+                      PDF
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {isLoadingContent ? (
                 <div className="flex flex-col items-center justify-center py-12 text-cyan-600 dark:text-cyan-400">
                   <Loader2 className="w-8 h-8 animate-spin mb-4" />
                   <p>טוען תוכן...</p>
+                </div>
+              ) : isPdf ? (
+                <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                  <p className="font-bold mb-2">סיכום זה הוא קובץ PDF.</p>
+                  <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
+                  <input type="file" accept="application/pdf" className="mt-4 w-full" onChange={(e) => setNewPdfFile(e.target.files?.[0] || null)} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -226,22 +310,32 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                 </div>
               )}
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-between pt-4">
                 <button
                   type="button"
-                  onClick={onClose}
-                  className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                  onClick={handleDelete}
+                  disabled={isDeleting || !summary}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
-                  ביטול
+                  {isDeleting ? 'מוחק...' : 'מחק סיכום'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors shadow-sm"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'שומר...' : 'שמור סיכום'}
-                </button>
+                <div className="flex">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'שומר...' : 'שמור סיכום'}
+                  </button>
+                </div>
               </div>
             </form>
           </motion.div>

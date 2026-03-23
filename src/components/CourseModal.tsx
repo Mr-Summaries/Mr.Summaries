@@ -60,8 +60,44 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
   const [origClaims, setOrigClaims] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
+  
+  const [isOverviewPdf, setIsOverviewPdf] = useState(false);
+  const [newOverviewPdf, setNewOverviewPdf] = useState<File | null>(null);
+  const [isDefinitionsPdf, setIsDefinitionsPdf] = useState(false);
+  const [newDefinitionsPdf, setNewDefinitionsPdf] = useState<File | null>(null);
+  const [isClaimsPdf, setIsClaimsPdf] = useState(false);
+  const [newClaimsPdf, setNewClaimsPdf] = useState<File | null>(null);
+
+  const handleDelete = async () => {
+    if (!course || !confirm('האם אתה בטוח שברצונך למחוק קורס זה?')) return;
+    setIsDeleting(true);
+    setError('');
+    try {
+      const filesToDelete = [course.overviewID, course.definitionsID, course.claimsID].filter(Boolean);
+      for (const fileId of filesToDelete) {
+        try {
+          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+        } catch (e) {
+          console.error('Error deleting file:', e);
+        }
+      }
+      await databases.deleteDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.coursesCollectionId,
+        course.$id
+      );
+      onSave();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'שגיאה במחיקת הקורס');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -72,9 +108,31 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         
         const loadContents = async () => {
           setIsLoadingContent(true);
-          const ov = await fetchFileContent(course.overviewID);
-          const def = await fetchFileContent(course.definitionsID);
-          const cl = await fetchFileContent(course.claimsID);
+          setIsOverviewPdf(false);
+          setIsDefinitionsPdf(false);
+          setIsClaimsPdf(false);
+          setNewOverviewPdf(null);
+          setNewDefinitionsPdf(null);
+          setNewClaimsPdf(null);
+
+          const checkPdf = async (fileId: string) => {
+            try {
+              const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileId);
+              return file.mimeType === 'application/pdf';
+            } catch (e) {
+              return false;
+            }
+          };
+
+          const [ov, def, cl] = await Promise.all([
+            fetchFileContent(course.overviewID),
+            fetchFileContent(course.definitionsID),
+            fetchFileContent(course.claimsID)
+          ]);
+          
+          setIsOverviewPdf(await checkPdf(course.overviewID));
+          setIsDefinitionsPdf(await checkPdf(course.definitionsID));
+          setIsClaimsPdf(await checkPdf(course.claimsID));
           
           setOverviewContent(ov);
           setDefinitionsContent(def);
@@ -96,6 +154,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         setOrigOverview('');
         setOrigDefinitions('');
         setOrigClaims('');
+        setIsOverviewPdf(false);
+        setIsDefinitionsPdf(false);
+        setIsClaimsPdf(false);
+        setNewOverviewPdf(null);
+        setNewDefinitionsPdf(null);
+        setNewClaimsPdf(null);
       }
     }
   }, [course, isOpen]);
@@ -109,22 +173,36 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       const courseNum = number.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       const isNumberChanged = course && courseNum !== course.number?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
+      const uploadPdf = async (file: File, id: string, oldFileId: string) => {
+        try {
+          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+        } catch (e) {}
+        const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, file);
+        return res.$id;
+      };
+
       let finalOvId = course?.overviewID || '';
-      if (overviewContent !== origOverview || isNumberChanged) {
+      if (isOverviewPdf) {
+        if (newOverviewPdf) finalOvId = await uploadPdf(newOverviewPdf, `overview-${courseNum}`.toLowerCase(), finalOvId);
+      } else if (overviewContent !== origOverview || isNumberChanged) {
         const id = `overview-${courseNum}`.toLowerCase();
         const filename = `Overview-${courseNum}.md`;
         finalOvId = overviewContent.trim() ? await uploadContent(overviewContent, filename, id) : '';
       }
 
       let finalDefId = course?.definitionsID || '';
-      if (definitionsContent !== origDefinitions || isNumberChanged) {
+      if (isDefinitionsPdf) {
+        if (newDefinitionsPdf) finalDefId = await uploadPdf(newDefinitionsPdf, `definitions-${courseNum}`.toLowerCase(), finalDefId);
+      } else if (definitionsContent !== origDefinitions || isNumberChanged) {
         const id = `definitions-${courseNum}`.toLowerCase();
         const filename = `Definitions-${courseNum}.md`;
         finalDefId = definitionsContent.trim() ? await uploadContent(definitionsContent, filename, id) : '';
       }
 
       let finalClId = course?.claimsID || '';
-      if (claimsContent !== origClaims || isNumberChanged) {
+      if (isClaimsPdf) {
+        if (newClaimsPdf) finalClId = await uploadPdf(newClaimsPdf, `claims-${courseNum}`.toLowerCase(), finalClId);
+      } else if (claimsContent !== origClaims || isNumberChanged) {
         const id = `claims-${courseNum}`.toLowerCase();
         const filename = `Claims-${courseNum}.md`;
         finalClId = claimsContent.trim() ? await uploadContent(claimsContent, filename, id) : '';
@@ -248,76 +326,155 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                 <div className="space-y-12">
                   {/* Overview Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">סילבוס / סקירה</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <textarea
-                        rows={8}
-                        value={overviewContent}
-                        onChange={(e) => setOverviewContent(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
-                        dir={rightAlign ? 'rtl' : 'ltr'}
-                        placeholder="# סילבוס הקורס..."
-                      />
-                      <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                        {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">סילבוס / סקירה</h3>
+                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setIsOverviewPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isOverviewPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setIsOverviewPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isOverviewPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
+                    {isOverviewPdf ? (
+                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                        <p className="font-bold mb-2">סילבוס זה הוא קובץ PDF.</p>
+                        {course?.overviewID && (
+                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.overviewID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        )}
+                        <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
+                        <div className="mt-4">
+                          <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
+                            בחר קובץ PDF חדש
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewOverviewPdf(e.target.files?.[0] || null)} />
+                          </label>
+                          {newOverviewPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newOverviewPdf.name}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <textarea
+                          rows={8}
+                          value={overviewContent}
+                          onChange={(e) => setOverviewContent(e.target.value)}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          dir={rightAlign ? 'rtl' : 'ltr'}
+                          placeholder="# סילבוס הקורס..."
+                        />
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                          {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Definitions Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">הגדרות</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <textarea
-                        rows={8}
-                        value={definitionsContent}
-                        onChange={(e) => setDefinitionsContent(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
-                        dir={rightAlign ? 'rtl' : 'ltr'}
-                        placeholder="## הגדרות..."
-                      />
-                      <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                        {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">הגדרות</h3>
+                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setIsDefinitionsPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isDefinitionsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setIsDefinitionsPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isDefinitionsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
+                    {isDefinitionsPdf ? (
+                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                        <p className="font-bold mb-2">דף הגדרות זה הוא קובץ PDF.</p>
+                        {course?.definitionsID && (
+                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.definitionsID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        )}
+                        <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
+                        <div className="mt-4">
+                          <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
+                            בחר קובץ PDF חדש
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewDefinitionsPdf(e.target.files?.[0] || null)} />
+                          </label>
+                          {newDefinitionsPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newDefinitionsPdf.name}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <textarea
+                          rows={8}
+                          value={definitionsContent}
+                          onChange={(e) => setDefinitionsContent(e.target.value)}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          dir={rightAlign ? 'rtl' : 'ltr'}
+                          placeholder="## הגדרות..."
+                        />
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                          {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Claims Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">משפטים</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <textarea
-                        rows={8}
-                        value={claimsContent}
-                        onChange={(e) => setClaimsContent(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
-                        dir={rightAlign ? 'rtl' : 'ltr'}
-                        placeholder="## משפטים חשובים..."
-                      />
-                      <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                        {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">משפטים</h3>
+                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setIsClaimsPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isClaimsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setIsClaimsPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isClaimsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
+                    {isClaimsPdf ? (
+                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                        <p className="font-bold mb-2">דף משפטים זה הוא קובץ PDF.</p>
+                        {course?.claimsID && (
+                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.claimsID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        )}
+                        <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
+                        <div className="mt-4">
+                          <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
+                            בחר קובץ PDF חדש
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewClaimsPdf(e.target.files?.[0] || null)} />
+                          </label>
+                          {newClaimsPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newClaimsPdf.name}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <textarea
+                          rows={8}
+                          value={claimsContent}
+                          onChange={(e) => setClaimsContent(e.target.value)}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          dir={rightAlign ? 'rtl' : 'ltr'}
+                          placeholder="## משפטים חשובים..."
+                        />
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                          {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-between pt-4">
                 <button
                   type="button"
-                  onClick={onClose}
-                  className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                  onClick={handleDelete}
+                  disabled={isDeleting || !course}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
-                  ביטול
+                  {isDeleting ? 'מוחק...' : 'מחק קורס'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors shadow-sm"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'שומר...' : 'שמור קורס'}
-                </button>
+                <div className="flex">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'שומר...' : 'שמור קורס'}
+                  </button>
+                </div>
               </div>
             </form>
           </motion.div>

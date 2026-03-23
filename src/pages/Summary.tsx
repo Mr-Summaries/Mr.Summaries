@@ -28,31 +28,35 @@ export const Summary = () => {
 
       if (res.fileID) {
         try {
-          let urlToFetch = res.fileID;
+          const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, res.fileID);
           
-          // If it's a short ID (legacy or our new predictable IDs), construct the URL
-          if (/^[a-zA-Z0-9_.-]+$/.test(res.fileID) && res.fileID.length < 100) {
-            const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID);
-            urlToFetch = fileUrl.toString();
-          }
-
-          if (urlToFetch.startsWith('http')) {
-            const fileRes = await fetch(urlToFetch, {
-              credentials: 'include'
-            });
-            
-            const contentType = fileRes.headers.get('content-type');
-            const isHtml = contentType?.includes('text/html');
-            
-            if (fileRes.ok && !isHtml) {
-              const text = await fileRes.text();
-              setContent(text);
-            } else {
-              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-            }
+          if (file.mimeType === 'application/pdf') {
+            setContent(`[צפה בקובץ ה-PDF](${storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString()})`);
           } else {
-            setContent(res.fileID);
+            let urlToFetch = res.fileID;
+            if (/^[a-zA-Z0-9_.-]+$/.test(res.fileID) && res.fileID.length < 100) {
+              const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID);
+              urlToFetch = fileUrl.toString();
+            }
+
+            if (urlToFetch.startsWith('http')) {
+              const fileRes = await fetch(urlToFetch, {
+                credentials: 'include'
+              });
+              
+              const contentType = fileRes.headers.get('content-type');
+              const isHtml = contentType?.includes('text/html');
+              
+              if (fileRes.ok && !isHtml) {
+                const text = await fileRes.text();
+                setContent(text);
+              } else {
+                console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+                setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
+              }
+            } else {
+              setContent(res.fileID);
+            }
           }
         } catch (e) {
           console.error('Error fetching summary content:', e);
@@ -82,16 +86,16 @@ export const Summary = () => {
   }
 
   const getCourseId = () => {
-    if (!summary?.courseID) return '';
-    if (typeof summary.courseID === 'string') return summary.courseID;
-    if (Array.isArray(summary.courseID)) {
-      return summary.courseID[0]?.$id || summary.courseID[0] || '';
+    if (!summary?.courses) return '';
+    if (typeof summary.courses === 'string') return summary.courses;
+    if (Array.isArray(summary.courses)) {
+      return summary.courses[0]?.$id || summary.courses[0] || '';
     }
-    return summary.courseID.$id || '';
+    return summary.courses.$id || '';
   };
 
   const courseId = getCourseId();
-  const courseNumber = summary?.courseID?.number || (Array.isArray(summary?.courseID) ? summary.courseID[0]?.number : '');
+  const courseNumber = summary?.courses?.number || (Array.isArray(summary?.courses) ? summary.courses[0]?.number : '');
 
   return (
     <div className="max-w-7xl mx-auto px-4" dir="rtl">

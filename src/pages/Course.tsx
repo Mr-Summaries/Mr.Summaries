@@ -75,32 +75,35 @@ export const Course = () => {
 
       if (fileIdToFetch) {
         try {
-          let urlToFetch = fileIdToFetch;
+          const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
           
-          // If it's a short ID (legacy or our new predictable IDs), construct the URL
-          if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 100) {
-            const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
-            urlToFetch = fileUrl.toString();
-          }
-
-          if (urlToFetch.startsWith('http')) {
-            const fileRes = await fetch(urlToFetch, {
-              credentials: 'include'
-            });
-            
-            // If it's an HTML response, it's likely a fallback page (like Vite's index.html) or an error page
-            const contentType = fileRes.headers.get('content-type');
-            const isHtml = contentType?.includes('text/html');
-            
-            if (fileRes.ok && !isHtml) {
-              const text = await fileRes.text();
-              setContent(text);
-            } else {
-              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-            }
+          if (file.mimeType === 'application/pdf') {
+            setContent(`[צפה בקובץ ה-PDF](${storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch).toString()})`);
           } else {
-            setContent(fileIdToFetch);
+            let urlToFetch = fileIdToFetch;
+            if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 100) {
+              const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
+              urlToFetch = fileUrl.toString();
+            }
+
+            if (urlToFetch.startsWith('http')) {
+              const fileRes = await fetch(urlToFetch, {
+                credentials: 'include'
+              });
+              
+              const contentType = fileRes.headers.get('content-type');
+              const isHtml = contentType?.includes('text/html');
+              
+              if (fileRes.ok && !isHtml) {
+                const text = await fileRes.text();
+                setContent(text);
+              } else {
+                console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+                setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
+              }
+            } else {
+              setContent(fileIdToFetch);
+            }
           }
         } catch (e) {
           console.error('Error fetching file content:', e);
