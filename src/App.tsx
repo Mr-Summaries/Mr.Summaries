@@ -7,6 +7,8 @@ const Home = lazy(() => import('./pages/Home').then(module => ({ default: module
 const Course = lazy(() => import('./pages/Course').then(module => ({ default: module.Course })));
 const Summaries = lazy(() => import('./pages/Summaries').then(module => ({ default: module.Summaries })));
 const Summary = lazy(() => import('./pages/Summary').then(module => ({ default: module.Summary })));
+const Example = lazy(() => import('./pages/Example').then(module => ({ default: module.Example })));
+const Lecture = lazy(() => import('./pages/Lecture').then(module => ({ default: module.Lecture })));
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
 const Profile = lazy(() => import('./pages/Profile').then(module => ({ default: module.Profile })));
 
@@ -32,6 +34,8 @@ export default function App() {
             <Route path="course/:id" element={<Course />} />
             <Route path="course/:id/summaries" element={<Summaries />} />
             <Route path="summary/:id" element={<Summary />} />
+            <Route path="example/:id" element={<Example />} />
+            <Route path="lecture/:id" element={<Lecture />} />
             <Route path="login" element={<Login />} />
             <Route path="profile" element={<Profile />} />
           </Route>
