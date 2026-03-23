@@ -61,9 +61,10 @@ export const Home = () => {
 
   const filteredCourses = useMemo(() => {
     return courses.filter(c => 
-      c.name.includes(deferredSearch) || c.number.includes(deferredSearch)
+      (c.name.includes(deferredSearch) || c.number.includes(deferredSearch)) &&
+      !enrolledCourseIds.includes(c.$id)
     );
-  }, [courses, deferredSearch]);
+  }, [courses, deferredSearch, enrolledCourseIds]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

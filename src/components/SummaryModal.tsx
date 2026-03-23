@@ -107,7 +107,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
       };
 
       if (!summary && courseId) {
-        data.courses = courseId;
+        data.courseID = courseId;
       }
 
       if (summary) {

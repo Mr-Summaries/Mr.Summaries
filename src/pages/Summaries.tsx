@@ -27,7 +27,7 @@ export const Summaries = () => {
       const summariesRes = await databases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.summariesCollectionId,
-        [Query.equal('courses', id!)]
+        [Query.equal('courseID', id!)]
       );
       setSummaries(summariesRes.documents);
     } catch (error) {

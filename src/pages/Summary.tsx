@@ -82,16 +82,16 @@ export const Summary = () => {
   }
 
   const getCourseId = () => {
-    if (!summary?.courses) return '';
-    if (typeof summary.courses === 'string') return summary.courses;
-    if (Array.isArray(summary.courses)) {
-      return summary.courses[0]?.$id || summary.courses[0] || '';
+    if (!summary?.courseID) return '';
+    if (typeof summary.courseID === 'string') return summary.courseID;
+    if (Array.isArray(summary.courseID)) {
+      return summary.courseID[0]?.$id || summary.courseID[0] || '';
     }
-    return summary.courses.$id || '';
+    return summary.courseID.$id || '';
   };
 
   const courseId = getCourseId();
-  const courseNumber = summary?.courses?.number || (Array.isArray(summary?.courses) ? summary.courses[0]?.number : '');
+  const courseNumber = summary?.courseID?.number || (Array.isArray(summary?.courseID) ? summary.courseID[0]?.number : '');
 
   return (
     <div className="max-w-7xl mx-auto px-4" dir="rtl">

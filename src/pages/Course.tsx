@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { CourseModal } from '../components/CourseModal';
 import { SummaryModal } from '../components/SummaryModal';
+import { TableOfContents } from '../components/TableOfContents';
 
 export const Course = () => {
   const { id } = useParams();
@@ -24,6 +25,8 @@ export const Course = () => {
   const deferredSearch = useDeferredValue(search);
 
   const currentTab = new URLSearchParams(location.search).get('tab') || 'overview';
+
+  const [tocItems, setTocItems] = useState<{ id: string, title: string, level: number }[]>([]);
 
   const fetchCourse = useCallback(async () => {
     try {
@@ -114,7 +117,7 @@ export const Course = () => {
       const summariesRes = await databases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.summariesCollectionId,
-        [Query.equal('courses', id!)]
+        [Query.equal('courseID', id!)]
       );
       setSummaries(summariesRes.documents);
     } catch (error) {
@@ -243,58 +246,68 @@ export const Course = () => {
         })}
       </div>
 
-      {currentTab === 'summaries' ? (
-        <div className="space-y-8">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <div className="relative w-full max-w-md">
-              <div className="absolute inset-y-0 right-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-zinc-400 mr-3" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
-                placeholder="חיפוש סיכומים..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            {isAdmin && (
-              <button 
-                onClick={() => setIsSummaryModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors shadow-sm whitespace-nowrap"
-              >
-                <Plus className="w-5 h-5" />
-                הוסף סיכום
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSummaries.map((summary) => (
-              <Link 
-                key={summary.$id} 
-                to={`/summary/${summary.$id}`}
-                className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
-              >
-                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
-                  <FileText className="w-6 h-6" />
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-grow max-w-5xl">
+          {currentTab === 'summaries' ? (
+            <div className="space-y-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                <div className="relative w-full max-w-md">
+                  <div className="absolute inset-y-0 right-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-zinc-400 mr-3" />
+                  </div>
+                  <input
+                    type="text"
+                    className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
+                    placeholder="חיפוש סיכומים..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                  {summary.name}
-                </h3>
-              </Link>
-            ))}
-            {filteredSummaries.length === 0 && (
-              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
-                לא נמצאו סיכומים התואמים את החיפוש.
+
+                {isAdmin && (
+                  <button 
+                    onClick={() => setIsSummaryModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    <Plus className="w-5 h-5" />
+                    הוסף סיכום
+                  </button>
+                )}
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSummaries.map((summary) => (
+                  <Link 
+                    key={summary.$id} 
+                    to={`/summary/${summary.$id}`}
+                    className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
+                  >
+                    <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                      {summary.name}
+                    </h3>
+                  </Link>
+                ))}
+                {filteredSummaries.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
+                    לא נמצאו סיכומים התואמים את החיפוש.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <NestedMarkdown 
+              content={content} 
+              rightAlign={course.rightAlign} 
+              onTOCChange={setTocItems}
+            />
+          )}
         </div>
-      ) : (
-        <NestedMarkdown content={content} rightAlign={course.rightAlign} />
-      )}
+
+        {currentTab !== 'summaries' && <TableOfContents items={tocItems} />}
+      </div>
 
       <CourseModal 
         isOpen={isCourseModalOpen} 

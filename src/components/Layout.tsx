@@ -68,7 +68,7 @@ export const Layout = () => {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 pt-24 pb-8 relative flex-grow">
+      <main className="container mx-auto px-4 pt-24 pb-20 relative flex-grow">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
