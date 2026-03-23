@@ -32,10 +32,18 @@ const fetchFileContent = async (fileId: string) => {
   }
 };
 
-const uploadContent = async (content: string, filename: string) => {
+const uploadContent = async (content: string, filename: string, fileId: string) => {
   if (!content.trim()) return '';
   const file = new File([content], filename, { type: 'text/markdown' });
-  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, ID.unique(), file);
+  
+  try {
+    // Try to delete existing file with same ID to allow "overwrite"
+    await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+  } catch (e) {
+    // Ignore if file doesn't exist
+  }
+
+  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, fileId, file);
   return res.$id;
 };
 
@@ -98,24 +106,33 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
     setError('');
 
     try {
+      const courseNum = number.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const isNumberChanged = course && courseNum !== course.number?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      
       let finalOvId = course?.overviewID || '';
-      if (overviewContent !== origOverview) {
-        finalOvId = overviewContent.trim() ? await uploadContent(overviewContent, 'overview.md') : '';
+      if (overviewContent !== origOverview || isNumberChanged) {
+        const id = `overview-${courseNum}`.toLowerCase();
+        const filename = `Overview-${courseNum}.md`;
+        finalOvId = overviewContent.trim() ? await uploadContent(overviewContent, filename, id) : '';
       }
 
       let finalDefId = course?.definitionsID || '';
-      if (definitionsContent !== origDefinitions) {
-        finalDefId = definitionsContent.trim() ? await uploadContent(definitionsContent, 'definitions.md') : '';
+      if (definitionsContent !== origDefinitions || isNumberChanged) {
+        const id = `definitions-${courseNum}`.toLowerCase();
+        const filename = `Definitions-${courseNum}.md`;
+        finalDefId = definitionsContent.trim() ? await uploadContent(definitionsContent, filename, id) : '';
       }
 
       let finalClId = course?.claimsID || '';
-      if (claimsContent !== origClaims) {
-        finalClId = claimsContent.trim() ? await uploadContent(claimsContent, 'claims.md') : '';
+      if (claimsContent !== origClaims || isNumberChanged) {
+        const id = `claims-${courseNum}`.toLowerCase();
+        const filename = `Claims-${courseNum}.md`;
+        finalClId = claimsContent.trim() ? await uploadContent(claimsContent, filename, id) : '';
       }
 
       const data = {
         name,
-        number,
+        number: courseNum,
         rightAlign,
         overviewID: finalOvId,
         definitionsID: finalDefId,
@@ -130,10 +147,11 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
           data
         );
       } else {
+        const docId = courseNum.trim(); // Use exact number as ID as requested
         await databases.createDocument(
           APPWRITE_CONFIG.databaseId,
           APPWRITE_CONFIG.coursesCollectionId,
-          ID.unique(),
+          docId,
           data
         );
       }

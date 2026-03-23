@@ -115,6 +115,7 @@ export const Summaries = () => {
         onClose={() => setIsSummaryModalOpen(false)} 
         onSave={fetchSummaries} 
         courseId={id}
+        courseNumber={course?.number}
       />
     </div>
   );

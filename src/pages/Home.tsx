@@ -145,7 +145,7 @@ export const Home = () => {
                   <li>גלול מטה ל-<strong>Platforms</strong> ולחץ על <strong>Add Platform</strong> &gt; <strong>Web App</strong></li>
                   <li>ב-Hostname, הדבק בדיוק את הכתובת הבאה (ללא https://):</li>
                   <li className="font-mono bg-white/50 dark:bg-black/50 p-2 rounded mt-1 select-all" dir="ltr">
-                    ais-dev-i6hevv7iipjk7f3pakdyhh-239663300019.europe-west1.run.app
+                    {window.location.hostname}
                   </li>
                 </ol>
               </div>

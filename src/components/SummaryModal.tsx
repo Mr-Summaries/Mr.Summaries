@@ -10,6 +10,7 @@ interface SummaryModalProps {
   onSave: () => void;
   summary?: any; // If provided, we are editing
   courseId?: string; // If creating new, we need the course ID
+  courseNumber?: string; // For naming convention
 }
 
 const fetchFileContent = async (fileId: string) => {
@@ -33,14 +34,22 @@ const fetchFileContent = async (fileId: string) => {
   }
 };
 
-const uploadContent = async (content: string, filename: string) => {
+const uploadContent = async (content: string, filename: string, fileId: string) => {
   if (!content.trim()) return '';
   const file = new File([content], filename, { type: 'text/markdown' });
-  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, ID.unique(), file);
+  
+  try {
+    // Try to delete existing file with same ID to allow "overwrite"
+    await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+  } catch (e) {
+    // Ignore if file doesn't exist
+  }
+
+  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, fileId, file);
   return res.$id;
 };
 
-export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, onClose, onSave, summary, courseId }) => {
+export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, onClose, onSave, summary, courseId, courseNumber }) => {
   const [name, setName] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
   const [content, setContent] = useState('');
@@ -79,9 +88,16 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
     setError('');
 
     try {
+      const courseNum = courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '') || 'unknown';
+      const summaryName = name.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const isNameChanged = summary && summaryName !== summary.name?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const isCourseNumChanged = summary && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      
       let finalFileId = summary?.fileID || '';
-      if (content !== origContent) {
-        finalFileId = content.trim() ? await uploadContent(content, 'summary.md') : '';
+      if (content !== origContent || isNameChanged || isCourseNumChanged) {
+        const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
+        const filename = `Summary-${summaryName}-${courseNum}.md`;
+        finalFileId = content.trim() ? await uploadContent(content, filename, id) : '';
       }
 
       const data: any = {
@@ -102,10 +118,11 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
           data
         );
       } else {
+        const docId = `summary-${summaryName}-${courseNum}`.toLowerCase();
         await databases.createDocument(
           APPWRITE_CONFIG.databaseId,
           APPWRITE_CONFIG.summariesCollectionId,
-          ID.unique(),
+          docId,
           data
         );
       }

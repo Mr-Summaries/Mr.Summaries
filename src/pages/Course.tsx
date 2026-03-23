@@ -66,29 +66,34 @@ export const Course = () => {
         try {
           let urlToFetch = fileIdToFetch;
           
-          // If it's a short ID (legacy), construct the URL
-          if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 50) {
-            const fileUrl = storage.getFileDownload(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
+          // If it's a short ID (legacy or our new predictable IDs), construct the URL
+          if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 100) {
+            const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
             urlToFetch = fileUrl.toString();
           }
 
           if (urlToFetch.startsWith('http')) {
-            const fileRes = await fetch(urlToFetch);
+            const fileRes = await fetch(urlToFetch, {
+              credentials: 'include'
+            });
             
             // If it's an HTML response, it's likely a fallback page (like Vite's index.html) or an error page
-            const isHtml = fileRes.headers.get('content-type')?.includes('text/html');
+            const contentType = fileRes.headers.get('content-type');
+            const isHtml = contentType?.includes('text/html');
             
             if (fileRes.ok && !isHtml) {
               const text = await fileRes.text();
               setContent(text);
             } else {
-              setContent(fileIdToFetch);
+              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
             }
           } else {
             setContent(fileIdToFetch);
           }
         } catch (e) {
-          setContent(fileIdToFetch);
+          console.error('Error fetching file content:', e);
+          setContent('שגיאה בטעינת התוכן מהשרת.');
         }
       } else {
         setContent('לא נמצא תוכן.');
@@ -242,6 +247,7 @@ export const Course = () => {
         onClose={() => setIsSummaryModalOpen(false)} 
         onSave={() => {}} 
         courseId={id}
+        courseNumber={course.number}
       />
     </div>
   );

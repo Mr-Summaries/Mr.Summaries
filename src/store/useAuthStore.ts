@@ -20,7 +20,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkAuth: async () => {
     try {
       const currentAccount = await account.get();
+      console.log('Current User Labels:', currentAccount.labels);
       const isAdmin = currentAccount.labels?.includes('admin') || false;
+      console.log('Is Admin:', isAdmin);
       set({ user: currentAccount, isAdmin });
     } catch (error) {
       set({ user: null, isAdmin: false });
