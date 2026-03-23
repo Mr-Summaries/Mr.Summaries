@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useDeferredValue, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Search, BookOpen, Plus } from 'lucide-react';
-import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
+import { Search, BookOpen, Plus, BookmarkPlus, BookmarkCheck } from 'lucide-react';
+import { databases, APPWRITE_CONFIG, Query, ID } from '../lib/appwrite';
 import { useAuthStore } from '../store/useAuthStore';
 import { CourseModal } from '../components/CourseModal';
 
@@ -10,6 +10,7 @@ export const Home = () => {
   const { user, isAdmin } = useAuthStore();
   const [courses, setCourses] = useState<any[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+  const [enrollments, setEnrollments] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -35,11 +36,15 @@ export const Home = () => {
             [Query.equal('userID', user.$id)]
           );
           setEnrolledCourseIds(enrollmentRes.documents.map(e => e.courseID));
+          const enrollmentMap: Record<string, string> = {};
+          enrollmentRes.documents.forEach(e => { enrollmentMap[e.courseID] = e.$id; });
+          setEnrollments(enrollmentMap);
         } catch (e) {
           console.error('Error fetching enrollments', e);
         }
       } else {
         setEnrolledCourseIds([]);
+        setEnrollments({});
       }
     } catch (error: any) {
       console.error('Error fetching courses', error);
@@ -53,7 +58,42 @@ export const Home = () => {
       
       setErrorMsg(errorMessage);
     }
-  }, []);
+  }, [user]);
+
+  const toggleEnrollment = async (courseId: string, enrollmentId: string | null) => {
+    if (!user) return;
+
+    try {
+      if (enrollmentId) {
+        await databases.deleteDocument(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.enrollmentsCollectionId,
+          enrollmentId
+        );
+        setEnrolledCourseIds(prev => prev.filter(id => id !== courseId));
+        setEnrollments(prev => {
+          const next = { ...prev };
+          delete next[courseId];
+          return next;
+        });
+      } else {
+        const res = await databases.createDocument(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.enrollmentsCollectionId,
+          ID.unique(),
+          {
+            userID: user.$id,
+            courseID: courseId
+          }
+        );
+        setEnrolledCourseIds(prev => [...prev, courseId]);
+        setEnrollments(prev => ({ ...prev, [courseId]: res.$id }));
+      }
+      fetchCourses();
+    } catch (error) {
+      console.error('Error toggling enrollment', error);
+    }
+  };
 
   useEffect(() => {
     fetchCourses();
@@ -157,22 +197,28 @@ export const Home = () => {
                 {courses.filter(c => enrolledCourseIds.includes(c.$id)).length > 0 ? (
                   courses.filter(c => enrolledCourseIds.includes(c.$id)).map((course) => (
                     <motion.div key={course.$id} variants={itemVariants}>
-                      <Link 
-                        to={`/course/${course.$id}`}
+                      <div 
                         className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                            {course.name}
-                          </h3>
-                          <span className="text-xs font-mono bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-2 py-1 rounded-md">
-                            {course.number}
-                          </span>
+                          <Link to={`/course/${course.$id}`}>
+                            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                              {course.name}
+                            </h3>
+                          </Link>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-2 py-1 rounded-md">
+                              {course.number}
+                            </span>
+                            <button onClick={() => toggleEnrollment(course.$id, enrollments[course.$id] || null)} className="text-emerald-500 hover:text-emerald-600">
+                              <BookmarkCheck className="w-5 h-5" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-cyan-600/70 dark:text-cyan-300/70 text-sm line-clamp-2">
                           לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                         </p>
-                      </Link>
+                      </div>
                     </motion.div>
                   ))
                 ) : (
@@ -197,22 +243,28 @@ export const Home = () => {
             >
               {filteredCourses.map((course) => (
                 <motion.div key={course.$id} variants={itemVariants}>
-                  <Link 
-                    to={`/course/${course.$id}`}
+                  <div 
                     className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                        {course.name}
-                      </h3>
-                      <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">
-                        {course.number}
-                      </span>
+                      <Link to={`/course/${course.$id}`}>
+                        <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                          {course.name}
+                        </h3>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">
+                          {course.number}
+                        </span>
+                        <button onClick={() => toggleEnrollment(course.$id, null)} className="text-cyan-500 hover:text-cyan-600">
+                          <BookmarkPlus className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2">
                       לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                     </p>
-                  </Link>
+                  </div>
                 </motion.div>
               ))}
               {filteredCourses.length === 0 && (
