@@ -22,6 +22,15 @@
   @apply prose prose-zinc dark:prose-invert max-w-none;
 }
 
+.dark .markdown-body mark,
+.dark .markdown-body [style*="background-color: yellow"],
+.dark .markdown-body [style*="background: yellow"],
+.dark .markdown-body [style*="background-color: #FF"],
+.dark .markdown-body [style*="background-color: #ff"],
+.dark .markdown-body [style*="background-color: rgb(255, 255, 0)"] {
+  color: #000 !important;
+}
+
 .glass-card {
   @apply bg-white/90 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800/50 shadow-xl dark:shadow-2xl;
 }

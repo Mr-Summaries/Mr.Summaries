@@ -12,7 +12,7 @@ import { ExampleModal } from '../components/ExampleModal';
 import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-export const Course = () => {
+const Course = () => {
   const { id } = useParams();
   const location = useLocation();
   const { user, isAdmin } = useAuthStore();
@@ -164,19 +164,22 @@ export const Course = () => {
   }, [id]);
 
   const filteredSummaries = useMemo(() => {
-    return summaries.filter(s => 
+    const uniqueSummaries = Array.from(new Map(summaries.map(s => [s.$id, s])).values());
+    return uniqueSummaries.filter(s => 
       s.name.includes(deferredSearch)
     );
   }, [summaries, deferredSearch]);
 
   const filteredLectures = useMemo(() => {
-    return lectures.filter(l => 
+    const uniqueLectures = Array.from(new Map(lectures.map(l => [l.$id, l])).values());
+    return uniqueLectures.filter(l => 
       l.name.includes(deferredSearch)
     );
   }, [lectures, deferredSearch]);
 
   const filteredExamples = useMemo(() => {
-    return examples.filter(e => 
+    const uniqueExamples = Array.from(new Map(examples.map(e => [e.$id, e])).values());
+    return uniqueExamples.filter(e => 
       e.name.includes(deferredSearch)
     );
   }, [examples, deferredSearch]);
@@ -476,3 +479,5 @@ export const Course = () => {
     </div>
   );
 };
+
+export default Course;

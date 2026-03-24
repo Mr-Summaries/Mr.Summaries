@@ -1,115 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
-import { NestedMarkdown } from './NestedMarkdown';
+
+// Set worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
 interface PdfTextRendererProps {
   url: string;
   rightAlign?: boolean;
 }
 
-export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url, rightAlign = false }) => {
-  const [markdown, setMarkdown] = useState<string>('');
+export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
+  const [numPages, setNumPages] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const extractText = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Check cache first
-        const cacheKey = `pdf-markdown-${url}`;
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-          setMarkdown(cached);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch PDF as blob
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Failed to fetch PDF');
-        }
-        const blob = await response.blob();
-        
-        // Convert blob to base64
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64 = (reader.result as string).split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        
-        const prompt = `Extract the text from this PDF and format it as Markdown. 
-Preserve the structure including sections, subsections, math (using LaTeX syntax like $...$ for inline and $$...$$ for block), text colors (using HTML <span style="color: ...">), links, and any highlighted boxes or colorboxes (using HTML <div> with background colors). 
-Output ONLY the Markdown content without any surrounding markdown code blocks like \`\`\`markdown.`;
-
-        const result = await ai.models.generateContent({
-          model: "gemini-3.1-pro-preview",
-          contents: {
-            parts: [
-              {
-                inlineData: {
-                  mimeType: "application/pdf",
-                  data: base64Data,
-                }
-              },
-              {
-                text: prompt
-              }
-            ]
-          }
-        });
-
-        let generatedMarkdown = result.text || '';
-        // Remove markdown code block if present
-        if (generatedMarkdown.startsWith('```markdown')) {
-          generatedMarkdown = generatedMarkdown.replace(/^```markdown\n/, '').replace(/\n```$/, '');
-        } else if (generatedMarkdown.startsWith('```')) {
-          generatedMarkdown = generatedMarkdown.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
-
-        setMarkdown(generatedMarkdown);
-        try {
-          sessionStorage.setItem(cacheKey, generatedMarkdown);
-        } catch (e) {
-          // Ignore quota exceeded errors
-        }
-      } catch (err) {
-        console.error('Error extracting text:', err);
-        setError('Failed to extract text from PDF.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    extractText();
-  }, [url]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 text-zinc-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-4" />
-        <span className="text-lg font-medium">מנתח את המסמך בעזרת AI...</span>
-        <span className="text-sm mt-2 opacity-70">זה עשוי לקחת מספר שניות</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-500">{error}</div>;
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+    setNumPages(numPages);
+    setLoading(false);
   }
 
   return (
-    <div dir="auto">
-      <NestedMarkdown content={markdown} rightAlign={rightAlign} />
+    <div className="flex flex-col items-center w-full max-w-4xl mx-auto" dir="ltr">
+      <div className="w-full flex flex-col gap-6 p-4 sm:p-8 bg-zinc-200/30 dark:bg-zinc-950/30 rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
+        <Document
+          file={url}
+          onLoadSuccess={onDocumentLoadSuccess}
+          loading={
+            <div className="flex flex-col items-center p-24">
+              <Loader2 className="w-10 h-10 animate-spin text-cyan-600 mb-4" />
+              <span className="text-zinc-500 font-medium">טוען מסמך...</span>
+            </div>
+          }
+          error={
+            <div className="p-12 text-red-500 text-center bg-red-50 dark:bg-red-900/10 rounded-3xl border border-red-200 dark:border-red-900/20">
+              <p className="font-bold mb-2">שגיאה בטעינת הקובץ</p>
+              <p className="text-sm opacity-80">וודא שהקישור תקין או נסה להוריד את הקובץ ישירות.</p>
+            </div>
+          }
+          className="flex flex-col items-center gap-8"
+        >
+          {numPages && Array.from(new Array(numPages), (el, index) => (
+            <div key={`page_${index + 1}`} className="shadow-2xl rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white">
+              <Page 
+                pageNumber={index + 1} 
+                width={800} // Standard width for max-w-4xl
+                renderAnnotationLayer={true}
+                renderTextLayer={true}
+                className="max-w-full"
+              />
+            </div>
+          ))}
+        </Document>
+      </div>
     </div>
   );
 };
+

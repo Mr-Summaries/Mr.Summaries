@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, ArrowRight, UserPlus } from 'lucide-react';
 
-export const Login = () => {
+const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -150,3 +150,5 @@ export const Login = () => {
     </div>
   );
 };
+
+export default Login;

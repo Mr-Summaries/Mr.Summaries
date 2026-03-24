@@ -54,6 +54,8 @@ const parseSections = (text: string): SectionNode[] => {
   return rootNodes;
 };
 
+import { Mermaid } from './Mermaid';
+
 const proseClasses = "prose prose-zinc dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-cyan-700 dark:prose-h1:text-cyan-400 prose-h2:text-teal-700 dark:prose-h2:text-teal-400 prose-h3:text-emerald-600 dark:prose-h3:text-emerald-400 prose-h4:text-amber-600 dark:prose-h4:text-amber-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-emerald-700 dark:prose-strong:text-emerald-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-800 dark:prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-700 prose-blockquote:border-s-4 prose-blockquote:border-cyan-500 prose-blockquote:bg-cyan-50 dark:prose-blockquote:bg-cyan-900/20 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-e-lg prose-blockquote:text-cyan-900 dark:prose-blockquote:text-cyan-200 prose-li:marker:text-cyan-500 prose-img:rounded-xl prose-img:shadow-md";
 
 const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index: number }) => {
@@ -81,6 +83,19 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
         <ReactMarkdown 
           remarkPlugins={[remarkGfm, remarkMath]} 
           rehypePlugins={[rehypeRaw, rehypeKatex]}
+          components={{
+            code({ node, inline, className, children, ...props }: any) {
+              const match = /language-(\w+)/.exec(className || '');
+              if (!inline && match && match[1] === 'mermaid') {
+                return <Mermaid chart={String(children).replace(/\n$/, '')} />;
+              }
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            }
+          }}
         >
           {node.content}
         </ReactMarkdown>
@@ -97,7 +112,7 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
   );
 });
 
-export const NestedMarkdown = React.memo(({ content, rightAlign = false, onTOCChange }: { content: string, rightAlign?: boolean, onTOCChange?: (toc: { id: string, title: string, level: number }[]) => void }) => {
+export const NestedMarkdown = React.memo(({ content, rightAlign = false, onTOCChange, fileType }: { content: string, rightAlign?: boolean, onTOCChange?: (toc: { id: string, title: string, level: number }[]) => void, fileType?: 'md' | 'tex' }) => {
   const rootNodes = useMemo(() => parseSections(content), [content]);
   
   useEffect(() => {

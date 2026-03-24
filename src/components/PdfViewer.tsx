@@ -4,7 +4,8 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2 } from 'lucide-react';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+const workerVersion = typeof pdfjs.version === 'string' ? pdfjs.version : '3.11.174';
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${workerVersion}/build/pdf.worker.min.mjs`;
 
 interface PdfViewerProps {
   url: string;
@@ -56,9 +57,9 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
       return next;
     });
 
-    // Check pixels in the middle 82% to see if the page is blank
+    // Check pixels in the middle 94% to see if the page is blank
     // This ignores headers and footers (page numbers)
-    const cropRatio = 0.09;
+    const cropRatio = 0.03;
     const startY = Math.floor(height * cropRatio);
     const endY = Math.floor(height * (1 - cropRatio));
     
@@ -104,14 +105,15 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
       >
         {numPages && Array.from(new Array(numPages), (el, index) => {
           const pageHeight = pageHeights.get(index);
-          const cropRatio = 0.09; // Crop 9% from top and bottom to remove page numbers
+          const cropRatio = 0.03; // Crop 3% from top and bottom to remove page numbers
           
           // Assume standard A4 aspect ratio (1:1.414) for initial render to prevent layout shift
           const assumedHeight = containerWidth * 1.414;
           const currentHeight = pageHeight || assumedHeight;
           
-          const wrapperHeight = currentHeight * (1 - cropRatio * 2);
-          const marginTop = -(currentHeight * cropRatio);
+          const safeCurrentHeight = typeof currentHeight === 'number' && !isNaN(currentHeight) ? currentHeight : 1000;
+          const wrapperHeight = Number(safeCurrentHeight * (1 - cropRatio * 2)).toFixed(2);
+          const marginTop = Number(-(safeCurrentHeight * cropRatio)).toFixed(2);
 
           return (
             <div 

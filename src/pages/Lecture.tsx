@@ -8,7 +8,7 @@ import { NestedMarkdown } from '../components/NestedMarkdown';
 import { LectureModal } from '../components/LectureModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-export const Lecture = () => {
+const Lecture = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [lecture, setLecture] = useState<any>(null);
@@ -148,3 +148,5 @@ export const Lecture = () => {
     </div>
   );
 };
+
+export default Lecture;

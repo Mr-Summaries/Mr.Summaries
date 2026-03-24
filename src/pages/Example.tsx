@@ -8,7 +8,7 @@ import { NestedMarkdown } from '../components/NestedMarkdown';
 import { ExampleModal } from '../components/ExampleModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-export const Example = () => {
+const Example = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [example, setExample] = useState<any>(null);
@@ -148,3 +148,5 @@ export const Example = () => {
     </div>
   );
 };
+
+export default Example;

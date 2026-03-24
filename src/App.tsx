@@ -3,14 +3,14 @@ import { Layout } from './components/Layout';
 import { useEffect, Suspense, lazy } from 'react';
 import { useAuthStore } from './store/useAuthStore';
 
-const Home = lazy(() => import('./pages/Home').then(module => ({ default: module.Home })));
-const Course = lazy(() => import('./pages/Course').then(module => ({ default: module.Course })));
-const Summaries = lazy(() => import('./pages/Summaries').then(module => ({ default: module.Summaries })));
-const Summary = lazy(() => import('./pages/Summary').then(module => ({ default: module.Summary })));
-const Example = lazy(() => import('./pages/Example').then(module => ({ default: module.Example })));
-const Lecture = lazy(() => import('./pages/Lecture').then(module => ({ default: module.Lecture })));
-const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
-const Profile = lazy(() => import('./pages/Profile').then(module => ({ default: module.Profile })));
+const Course = lazy(() => import('./pages/Course'));
+const Summaries = lazy(() => import('./pages/Summaries'));
+const Summary = lazy(() => import('./pages/Summary'));
+const Example = lazy(() => import('./pages/Example'));
+const Lecture = lazy(() => import('./pages/Lecture'));
+const Login = lazy(() => import('./pages/Login'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Home = lazy(() => import('./pages/Home'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50">
