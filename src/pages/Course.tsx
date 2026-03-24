@@ -206,7 +206,7 @@ const Course = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto" dir="rtl">
+    <div className="max-w-5xl mx-auto px-4" dir="rtl">
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">

@@ -91,7 +91,7 @@ const Summary = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4" dir="rtl">
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8 justify-center">
         <div className="flex-grow max-w-5xl">
           <div className="flex justify-between items-start mb-8">
             <div>
