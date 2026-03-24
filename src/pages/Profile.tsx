@@ -5,7 +5,7 @@ import { User, Mail, Shield, BookOpen, Trash2, Save } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 
-export const Profile = () => {
+const Profile = () => {
   const { user, isAdmin, updateName, updateEmail } = useAuthStore();
   
   const [name, setName] = useState(user?.name || '');
@@ -237,3 +237,5 @@ export const Profile = () => {
     </div>
   );
 };
+
+export default Profile;

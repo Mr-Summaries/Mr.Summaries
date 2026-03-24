@@ -6,7 +6,7 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { CourseModal } from '../components/CourseModal';
 
-export const Home = () => {
+const Home = () => {
   const { user, isAdmin } = useAuthStore();
   const [courses, setCourses] = useState<any[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
@@ -253,3 +253,5 @@ export const Home = () => {
     </div>
   );
 };
+
+export default Home;

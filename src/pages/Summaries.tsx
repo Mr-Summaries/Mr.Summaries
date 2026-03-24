@@ -5,7 +5,7 @@ import { Search, FileText, Plus, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { SummaryModal } from '../components/SummaryModal';
 
-export const Summaries = () => {
+const Summaries = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summaries, setSummaries] = useState<any[]>([]);
@@ -112,3 +112,5 @@ export const Summaries = () => {
     </div>
   );
 };
+
+export default Summaries;

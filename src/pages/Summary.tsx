@@ -9,7 +9,7 @@ import { SummaryModal } from '../components/SummaryModal';
 import { TableOfContents } from '../components/TableOfContents';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-export const Summary = () => {
+const Summary = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
@@ -145,3 +145,5 @@ export const Summary = () => {
     </div>
   );
 };
+
+export default Summary;

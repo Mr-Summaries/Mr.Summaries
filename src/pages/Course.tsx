@@ -12,7 +12,7 @@ import { ExampleModal } from '../components/ExampleModal';
 import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-export const Course = () => {
+const Course = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -438,3 +438,5 @@ export const Course = () => {
     </div>
   );
 };
+
+export default Course;

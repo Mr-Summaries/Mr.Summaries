@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
 import { Client, Databases, Storage, Users, Query, ID } from "node-appwrite";
 import * as Appwrite from "node-appwrite";
 const InputFile = (Appwrite as any).InputFile;
@@ -16,7 +15,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function startServer() {
   const app = express();
   const PORT = 3000;
 
@@ -450,32 +449,6 @@ async function startServer() {
     }
   });
 
-  // Gemini AI Proxy Endpoint
-  app.post("/api/ai/generate", async (req, res) => {
-    const { prompt, model = "gemini-3-flash-preview" } = req.body;
-
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server" });
-    }
-
-    try {
-      const genAI = new GoogleGenAI({ apiKey });
-      const response = await genAI.models.generateContent({
-        model,
-        contents: prompt
-      });
-      res.json({ text: response.text });
-    } catch (error: any) {
-      console.error("Gemini AI Error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate content" });
-    }
-  });
-
   // Auth Proxy Endpoints
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
@@ -590,9 +563,17 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+
+  return app;
 }
 
-startServer();
+const appPromise = startServer();
+export default async (req: any, res: any) => {
+  const app = await appPromise;
+  return app(req, res);
+};
