@@ -8,6 +8,7 @@ interface LectureModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onDelete?: () => void;
   lecture?: any;
   courseId?: string;
   courseNumber?: string;
@@ -40,7 +41,7 @@ const uploadContent = async (content: string, filename: string, fileId: string) 
   return res.$id;
 };
 
-export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, onClose, onSave, lecture, courseId, courseNumber }) => {
+export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, onClose, onSave, onDelete, lecture, courseId, courseNumber }) => {
   const [name, setName] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
   const [content, setContent] = useState('');
@@ -50,7 +51,7 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
-  const [fileType, setFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [fileType, setFileType] = useState<'md' | 'pdf'>('md');
   const [newFile, setNewFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
@@ -66,6 +67,7 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
         }
       }
       await api.deleteLecture(lecture.$id);
+      onDelete?.();
       onSave();
       onClose();
     } catch (err: any) {
@@ -90,11 +92,6 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
             const file = await api.getFile(lecture.fileID);
             if (file.mimeType === 'application/pdf') {
               setFileType('pdf');
-            } else if (file.name.endsWith('.tex')) {
-              setFileType('tex');
-              const text = await fetchFileContent(lecture.fileID);
-              setContent(text);
-              setOrigContent(text);
             } else {
               setFileType('md');
               const text = await fetchFileContent(lecture.fileID);
@@ -135,7 +132,7 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
       
       let finalFileId = lecture?.fileID || '';
       
-      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf' | 'tex') => {
+      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf') => {
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
             try {
@@ -253,7 +250,6 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
                   <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">סוג תוכן:</label>
                   <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                     <button type="button" onClick={() => setFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                    <button type="button" onClick={() => setFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
                     <button type="button" onClick={() => setFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                   </div>
                 </div>
@@ -288,7 +284,7 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">תצוגה מקדימה</label>
                     <div className="w-full px-6 py-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[480px] overflow-y-auto prose dark:prose-invert max-w-none">
-                      {content ? <NestedMarkdown content={content} rightAlign={rightAlign} fileType={fileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                      {content ? <NestedMarkdown content={content} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                     </div>
                   </div>
                 </div>

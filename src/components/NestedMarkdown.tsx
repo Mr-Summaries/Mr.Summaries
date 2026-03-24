@@ -112,7 +112,7 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
   );
 });
 
-export const NestedMarkdown = React.memo(({ content, rightAlign = false, onTOCChange, fileType }: { content: string, rightAlign?: boolean, onTOCChange?: (toc: { id: string, title: string, level: number }[]) => void, fileType?: 'md' | 'tex' }) => {
+export const NestedMarkdown = React.memo(({ content, rightAlign = false, onTOCChange }: { content: string, rightAlign?: boolean, onTOCChange?: (toc: { id: string, title: string, level: number }[]) => void }) => {
   const rootNodes = useMemo(() => parseSections(content), [content]);
   
   useEffect(() => {

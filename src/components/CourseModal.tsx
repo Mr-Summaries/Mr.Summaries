@@ -62,11 +62,11 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
   
-  const [overviewFileType, setOverviewFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [overviewFileType, setOverviewFileType] = useState<'md' | 'pdf'>('md');
   const [newOverviewFile, setNewOverviewFile] = useState<File | null>(null);
-  const [definitionsFileType, setDefinitionsFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [definitionsFileType, setDefinitionsFileType] = useState<'md' | 'pdf'>('md');
   const [newDefinitionsFile, setNewDefinitionsFile] = useState<File | null>(null);
-  const [claimsFileType, setClaimsFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [claimsFileType, setClaimsFileType] = useState<'md' | 'pdf'>('md');
   const [newClaimsFile, setNewClaimsFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
@@ -107,7 +107,6 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
             try {
               const file = await api.getFile(fileId);
               if (file.mimeType === 'application/pdf') return 'pdf';
-              if (file.name.endsWith('.tex')) return 'tex';
               return 'md';
             } catch (e) {
               return 'md';
@@ -173,7 +172,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       const courseNum = number.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       const isNumberChanged = course && courseNum !== course.number?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
-      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf' | 'tex') => {
+      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf') => {
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
             try {
@@ -326,7 +325,6 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">סילבוס / סקירה</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                         <button type="button" onClick={() => setOverviewFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setOverviewFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
                         <button type="button" onClick={() => setOverviewFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
@@ -353,10 +351,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setOverviewContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder={overviewFileType === 'tex' ? "\\documentclass{article}..." : "# סילבוס הקורס..."}
+                          placeholder="# סילבוס הקורס..."
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} fileType={overviewFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}
@@ -368,7 +366,6 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">הגדרות</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                         <button type="button" onClick={() => setDefinitionsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setDefinitionsFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
                         <button type="button" onClick={() => setDefinitionsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
@@ -395,10 +392,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setDefinitionsContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder={definitionsFileType === 'tex' ? "\\documentclass{article}..." : "## הגדרות..."}
+                          placeholder="## הגדרות..."
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} fileType={definitionsFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}
@@ -410,7 +407,6 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">משפטים</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                         <button type="button" onClick={() => setClaimsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setClaimsFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
                         <button type="button" onClick={() => setClaimsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
@@ -437,10 +433,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setClaimsContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder={claimsFileType === 'tex' ? "\\documentclass{article}..." : "## משפטים חשובים..."}
+                          placeholder="## משפטים חשובים..."
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} fileType={claimsFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}

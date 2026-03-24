@@ -188,6 +188,36 @@ const Course = () => {
     }
   };
 
+  const onDeleteSummary = async () => {
+    const res = await api.getSummaries(id!);
+    setSummaries(res.documents);
+    if (res.documents.length > 0) {
+      navigate(`/course/${id}?tab=summaries`);
+    } else {
+      navigate(`/course/${id}?tab=overview`);
+    }
+  };
+
+  const onDeleteLecture = async () => {
+    const res = await api.getLectures(id!);
+    setLectures(res.documents);
+    if (res.documents.length > 0) {
+      navigate(`/course/${id}?tab=lectures`);
+    } else {
+      navigate(`/course/${id}?tab=overview`);
+    }
+  };
+
+  const onDeleteExample = async () => {
+    const res = await api.getExamples(id!);
+    setExamples(res.documents);
+    if (res.documents.length > 0) {
+      navigate(`/course/${id}?tab=examples`);
+    } else {
+      navigate(`/course/${id}?tab=overview`);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">טוען...</div>;
   }
@@ -405,6 +435,7 @@ const Course = () => {
         isOpen={isSummaryModalOpen} 
         onClose={() => setIsSummaryModalOpen(false)} 
         onSave={fetchSummaries} 
+        onDelete={onDeleteSummary}
         courseId={id}
         courseNumber={course.number}
       />
@@ -413,6 +444,7 @@ const Course = () => {
         isOpen={isLectureModalOpen} 
         onClose={() => setIsLectureModalOpen(false)} 
         onSave={fetchLectures} 
+        onDelete={onDeleteLecture}
         courseId={id}
         courseNumber={course.number}
       />
@@ -421,6 +453,7 @@ const Course = () => {
         isOpen={isExampleModalOpen} 
         onClose={() => setIsExampleModalOpen(false)} 
         onSave={fetchExamples} 
+        onDelete={onDeleteExample}
         courseId={id}
         courseNumber={course.number}
       />
