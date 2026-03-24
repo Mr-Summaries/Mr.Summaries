@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
 
@@ -16,6 +16,26 @@ interface PdfTextRendererProps {
 export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(800);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        // Subtract padding from container width
+        const width = entries[0].contentRect.width;
+        // The container has p-4 (1rem) or sm:p-8 (2rem)
+        // We'll use a slightly safer margin
+        setContainerWidth(width - (window.innerWidth < 640 ? 32 : 64));
+      }
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -23,7 +43,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-4xl mx-auto" dir="ltr">
+    <div ref={containerRef} className="flex flex-col items-center w-full max-w-4xl mx-auto" dir="ltr">
       <div className="w-full flex flex-col gap-6 p-4 sm:p-8 bg-zinc-200/30 dark:bg-zinc-950/30 rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
         <Document
           file={url}
@@ -46,7 +66,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
             <div key={`page_${index + 1}`} className="shadow-2xl rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white">
               <Page 
                 pageNumber={index + 1} 
-                width={800} // Standard width for max-w-4xl
+                width={containerWidth}
                 renderAnnotationLayer={true}
                 renderTextLayer={true}
                 className="max-w-full"
