@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Loader2 } from 'lucide-react';
-import { databases, storage, APPWRITE_CONFIG, ID } from '../lib/appwrite';
+import { api } from '../services/api';
 import { NestedMarkdown } from './NestedMarkdown';
 
 interface ExampleModalProps {
@@ -16,17 +16,11 @@ interface ExampleModalProps {
 const fetchFileContent = async (fileId: string) => {
   if (!fileId) return '';
   try {
-    let url = fileId;
-    if (/^[a-zA-Z0-9_.-]+$/.test(fileId) && fileId.length < 50) {
-      const fileUrl = storage.getFileDownload(APPWRITE_CONFIG.storageBucketId, fileId);
-      url = fileUrl.toString();
-    }
-    if (url.startsWith('http')) {
-      const res = await fetch(url);
-      const isHtml = res.headers.get('content-type')?.includes('text/html');
-      if (res.ok && !isHtml) {
-        return await res.text();
-      }
+    const url = await api.getFileView(fileId);
+    const res = await fetch(url);
+    const isHtml = res.headers.get('content-type')?.includes('text/html');
+    if (res.ok && !isHtml) {
+      return await res.text();
     }
     return fileId;
   } catch (e) {
@@ -39,10 +33,10 @@ const uploadContent = async (content: string, filename: string, fileId: string) 
   const file = new File([content], filename, { type: 'text/markdown' });
   
   try {
-    await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+    await api.deleteFile(fileId);
   } catch (e) {}
 
-  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, fileId, file);
+  const res = await api.createFile(file, fileId);
   return res.$id;
 };
 
@@ -66,16 +60,12 @@ export const ExampleModal: React.FC<ExampleModalProps> = React.memo(({ isOpen, o
     try {
       if (example.fileID) {
         try {
-          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, example.fileID);
+          await api.deleteFile(example.fileID);
         } catch (e) {
           console.error('Error deleting file:', e);
         }
       }
-      await databases.deleteDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.examplesCollectionId,
-        example.$id
-      );
+      await api.deleteExample(example.$id);
       onSave();
       onClose();
     } catch (err: any) {
@@ -97,7 +87,7 @@ export const ExampleModal: React.FC<ExampleModalProps> = React.memo(({ isOpen, o
           setFileType('md');
           setNewFile(null);
           try {
-            const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, example.fileID);
+            const file = await api.getFile(example.fileID);
             if (file.mimeType === 'application/pdf') {
               setFileType('pdf');
             } else if (file.name.endsWith('.tex')) {
@@ -149,9 +139,9 @@ export const ExampleModal: React.FC<ExampleModalProps> = React.memo(({ isOpen, o
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
             try {
-              await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+              await api.deleteFile(oldFileId);
             } catch (e) {}
-            const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, contentOrFile);
+            const res = await api.createFile(contentOrFile, id);
             return res.$id;
           }
           return oldFileId;
@@ -183,20 +173,10 @@ export const ExampleModal: React.FC<ExampleModalProps> = React.memo(({ isOpen, o
       }
 
       if (example) {
-        await databases.updateDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.examplesCollectionId,
-          example.$id,
-          data
-        );
+        await api.updateExample(example.$id, data);
       } else {
         const docId = `example-${exampleName}-${courseNum}`.toLowerCase();
-        await databases.createDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.examplesCollectionId,
-          docId,
-          data
-        );
+        await api.createExample(docId, data);
       }
       onSave();
       onClose();

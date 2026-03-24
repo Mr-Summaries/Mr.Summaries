@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
+import { api } from '../services/api';
 import { User, Mail, Shield, BookOpen, Trash2, Save } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 
-const Profile = () => {
+export const Profile = () => {
   const { user, isAdmin, updateName, updateEmail } = useAuthStore();
   
   const [name, setName] = useState(user?.name || '');
@@ -30,29 +30,19 @@ const Profile = () => {
       if (!user) return;
       try {
         // Fetch all enrollments for this user
-        const enrollmentRes = await databases.listDocuments(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.enrollmentsCollectionId,
-          [Query.equal('userID', user.$id)]
-        );
+        const enrollmentRes = await api.getEnrollments(user.$id);
 
         if (enrollmentRes.total > 0) {
-          const courseIds = enrollmentRes.documents.map(e => e.courseID);
+          const enrolled = await Promise.all(enrollmentRes.documents.map(async (enrollment: any) => {
+            try {
+              const course = await api.getCourse(enrollment.courseID);
+              return { ...course, enrollmentId: enrollment.$id };
+            } catch (e) {
+              return null;
+            }
+          }));
           
-          // Fetch the actual course documents
-          const coursesRes = await databases.listDocuments(
-            APPWRITE_CONFIG.databaseId,
-            APPWRITE_CONFIG.coursesCollectionId,
-            [Query.equal('$id', courseIds)]
-          );
-          
-          // Map enrollments to courses and store enrollment ID for removal
-          const enrolled = coursesRes.documents.map(course => {
-            const enrollment = enrollmentRes.documents.find(e => e.courseID === course.$id);
-            return { ...course, enrollmentId: enrollment?.$id };
-          });
-          
-          setEnrolledCourses(enrolled);
+          setEnrolledCourses(enrolled.filter(c => c !== null));
         } else {
           setEnrolledCourses([]);
         }
@@ -98,11 +88,7 @@ const Profile = () => {
 
   const removeCourse = async (enrollmentId: string) => {
     try {
-      await databases.deleteDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.enrollmentsCollectionId,
-        enrollmentId
-      );
+      await api.deleteEnrollment(enrollmentId);
       setEnrolledCourses(prev => prev.filter(c => c.enrollmentId !== enrollmentId));
     } catch (error) {
       console.error('Error removing course', error);
@@ -251,5 +237,3 @@ const Profile = () => {
     </div>
   );
 };
-
-export default Profile;

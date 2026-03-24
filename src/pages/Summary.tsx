@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { databases, storage, APPWRITE_CONFIG } from '../lib/appwrite';
+import { api } from '../services/api';
 import { ArrowRight, Edit2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
@@ -9,7 +9,7 @@ import { SummaryModal } from '../components/SummaryModal';
 import { TableOfContents } from '../components/TableOfContents';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-const Summary = () => {
+export const Summary = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
@@ -21,45 +21,33 @@ const Summary = () => {
 
   const fetchSummary = useCallback(async () => {
     try {
-      const res = await databases.getDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.summariesCollectionId,
-        id!
-      );
+      const res = await api.getSummary(id!);
       setSummary(res);
 
       if (res.fileID) {
         try {
-          const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, res.fileID);
+          const file = await api.getFile(res.fileID);
           
           if (file.mimeType === 'application/pdf') {
-            setPdfUrl(storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString());
+            setPdfUrl(await api.getFileView(res.fileID));
             setContent('');
           } else {
             setPdfUrl(null);
-            let urlToFetch = res.fileID;
-            if (/^[a-zA-Z0-9_.-]+$/.test(res.fileID) && res.fileID.length < 100) {
-              const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID);
-              urlToFetch = fileUrl.toString();
-            }
+            const urlToFetch = await api.getFileView(res.fileID);
 
-            if (urlToFetch.startsWith('http')) {
-              const fileRes = await fetch(urlToFetch, {
-                credentials: 'include'
-              });
-              
-              const contentType = fileRes.headers.get('content-type');
-              const isHtml = contentType?.includes('text/html');
-              
-              if (fileRes.ok && !isHtml) {
-                const text = await fileRes.text();
-                setContent(text);
-              } else {
-                console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-                setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-              }
+            const fileRes = await fetch(urlToFetch, {
+              credentials: 'include'
+            });
+            
+            const contentType = fileRes.headers.get('content-type');
+            const isHtml = contentType?.includes('text/html');
+            
+            if (fileRes.ok && !isHtml) {
+              const text = await fileRes.text();
+              setContent(text);
             } else {
-              setContent(res.fileID);
+              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
             }
           }
         } catch (e) {
@@ -157,5 +145,3 @@ const Summary = () => {
     </div>
   );
 };
-
-export default Summary;

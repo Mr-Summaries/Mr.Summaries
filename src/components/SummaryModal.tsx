@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Loader2, Eye, Edit3 } from 'lucide-react';
-import { databases, storage, APPWRITE_CONFIG, ID } from '../lib/appwrite';
+import { api } from '../services/api';
 import { NestedMarkdown } from './NestedMarkdown';
 
 interface SummaryModalProps {
@@ -16,17 +16,11 @@ interface SummaryModalProps {
 const fetchFileContent = async (fileId: string) => {
   if (!fileId) return '';
   try {
-    let url = fileId;
-    if (/^[a-zA-Z0-9_.-]+$/.test(fileId) && fileId.length < 50) {
-      const fileUrl = storage.getFileDownload(APPWRITE_CONFIG.storageBucketId, fileId);
-      url = fileUrl.toString();
-    }
-    if (url.startsWith('http')) {
-      const res = await fetch(url);
-      const isHtml = res.headers.get('content-type')?.includes('text/html');
-      if (res.ok && !isHtml) {
-        return await res.text();
-      }
+    const url = await api.getFileView(fileId);
+    const res = await fetch(url);
+    const isHtml = res.headers.get('content-type')?.includes('text/html');
+    if (res.ok && !isHtml) {
+      return await res.text();
     }
     return fileId;
   } catch (e) {
@@ -40,12 +34,12 @@ const uploadContent = async (content: string, filename: string, fileId: string) 
   
   try {
     // Try to delete existing file with same ID to allow "overwrite"
-    await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+    await api.deleteFile(fileId);
   } catch (e) {
     // Ignore if file doesn't exist
   }
 
-  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, fileId, file);
+  const res = await api.createFile(file, fileId);
   return res.$id;
 };
 
@@ -69,16 +63,12 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
     try {
       if (summary.fileID) {
         try {
-          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, summary.fileID);
+          await api.deleteFile(summary.fileID);
         } catch (e) {
           console.error('Error deleting file:', e);
         }
       }
-      await databases.deleteDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.summariesCollectionId,
-        summary.$id
-      );
+      await api.deleteSummary(summary.$id);
       onSave();
       onClose();
     } catch (err: any) {
@@ -100,7 +90,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
           setFileType('md');
           setNewFile(null);
           try {
-            const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, summary.fileID);
+            const file = await api.getFile(summary.fileID);
             if (file.mimeType === 'application/pdf') {
               setFileType('pdf');
             } else if (file.name.endsWith('.tex')) {
@@ -153,9 +143,9 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
             try {
-              await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+              await api.deleteFile(oldFileId);
             } catch (e) {}
-            const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, contentOrFile);
+            const res = await api.createFile(contentOrFile, id);
             return res.$id;
           }
           return oldFileId;
@@ -187,20 +177,10 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
       }
 
       if (summary) {
-        await databases.updateDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.summariesCollectionId,
-          summary.$id,
-          data
-        );
+        await api.updateSummary(summary.$id, data);
       } else {
         const docId = `summary-${summaryName}-${courseNum}`.toLowerCase();
-        await databases.createDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.summariesCollectionId,
-          docId,
-          data
-        );
+        await api.createSummary(docId, data);
       }
       onSave();
       onClose();

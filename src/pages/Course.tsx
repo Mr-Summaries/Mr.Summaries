@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useDeferredValue } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { databases, storage, APPWRITE_CONFIG, ID, Query } from '../lib/appwrite';
+import { api } from '../services/api';
 import { BookOpen, FileText, List, Bookmark, Edit2, BookmarkPlus, BookmarkCheck, Search, Plus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
@@ -12,7 +12,7 @@ import { ExampleModal } from '../components/ExampleModal';
 import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
-const Course = () => {
+export const Course = () => {
   const { id } = useParams();
   const location = useLocation();
   const { user, isAdmin } = useAuthStore();
@@ -37,27 +37,16 @@ const Course = () => {
 
   const fetchCourse = useCallback(async () => {
     try {
-      const res = await databases.getDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.coursesCollectionId,
-        id!
-      );
+      const res = await api.getCourse(id!);
       setCourse(res);
       
       // Check if enrolled in database
       if (user) {
         try {
-          const enrollmentRes = await databases.listDocuments(
-            APPWRITE_CONFIG.databaseId,
-            APPWRITE_CONFIG.enrollmentsCollectionId,
-            [
-              Query.equal('userID', user.$id),
-              Query.equal('courseID', id!)
-            ]
-          );
-          if (enrollmentRes.total > 0) {
+          const enrollment = await api.getEnrollment(user.$id, id!);
+          if (enrollment) {
             setIsEnrolled(true);
-            setEnrollmentId(enrollmentRes.documents[0].$id);
+            setEnrollmentId(enrollment.$id);
           } else {
             setIsEnrolled(false);
             setEnrollmentId(null);
@@ -77,36 +66,28 @@ const Course = () => {
 
       if (fileIdToFetch) {
         try {
-          const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
+          const file = await api.getFile(fileIdToFetch);
           
           if (file.mimeType === 'application/pdf') {
-            setPdfUrl(storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch).toString());
+            setPdfUrl(await api.getFileView(fileIdToFetch));
             setContent('');
           } else {
             setPdfUrl(null);
-            let urlToFetch = fileIdToFetch;
-            if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 100) {
-              const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
-              urlToFetch = fileUrl.toString();
-            }
+            const urlToFetch = await api.getFileView(fileIdToFetch);
 
-            if (urlToFetch.startsWith('http')) {
-              const fileRes = await fetch(urlToFetch, {
-                credentials: 'include'
-              });
-              
-              const contentType = fileRes.headers.get('content-type');
-              const isHtml = contentType?.includes('text/html');
-              
-              if (fileRes.ok && !isHtml) {
-                const text = await fileRes.text();
-                setContent(text);
-              } else {
-                console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-                setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-              }
+            const fileRes = await fetch(urlToFetch, {
+              credentials: 'include'
+            });
+            
+            const contentType = fileRes.headers.get('content-type');
+            const isHtml = contentType?.includes('text/html');
+            
+            if (fileRes.ok && !isHtml) {
+              const text = await fileRes.text();
+              setContent(text);
             } else {
-              setContent(fileIdToFetch);
+              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
             }
           }
         } catch (e) {
@@ -122,16 +103,12 @@ const Course = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, currentTab]);
+  }, [id, currentTab, user]);
 
   const fetchSummaries = useCallback(async () => {
     try {
-      const summariesRes = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.summariesCollectionId,
-        [Query.equal('courses', id!)]
-      );
-      setSummaries(summariesRes.documents);
+      const res = await api.getSummaries(id!);
+      setSummaries(res.documents);
     } catch (error) {
       console.error('Error fetching summaries', error);
     }
@@ -139,12 +116,8 @@ const Course = () => {
 
   const fetchLectures = useCallback(async () => {
     try {
-      const lecturesRes = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.lecturesCollectionId,
-        [Query.equal('courses', id!)]
-      );
-      setLectures(lecturesRes.documents);
+      const res = await api.getLectures(id!);
+      setLectures(res.documents);
     } catch (error) {
       console.error('Error fetching lectures', error);
     }
@@ -152,12 +125,8 @@ const Course = () => {
 
   const fetchExamples = useCallback(async () => {
     try {
-      const examplesRes = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.examplesCollectionId,
-        [Query.equal('courses', id!)]
-      );
-      setExamples(examplesRes.documents);
+      const res = await api.getExamples(id!);
+      setExamples(res.documents);
     } catch (error) {
       console.error('Error fetching examples', error);
     }
@@ -202,23 +171,11 @@ const Course = () => {
 
     try {
       if (isEnrolled && enrollmentId) {
-        await databases.deleteDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.enrollmentsCollectionId,
-          enrollmentId
-        );
+        await api.deleteEnrollment(enrollmentId);
         setIsEnrolled(false);
         setEnrollmentId(null);
       } else {
-        const res = await databases.createDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.enrollmentsCollectionId,
-          ID.unique(),
-          {
-            userID: user.$id,
-            courseID: id!
-          }
-        );
+        const res = await api.createEnrollment(user.$id, id!);
         setIsEnrolled(true);
         setEnrollmentId(res.$id);
       }
@@ -479,5 +436,3 @@ const Course = () => {
     </div>
   );
 };
-
-export default Course;

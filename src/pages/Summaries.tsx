@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo, useDeferredValue, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { databases, APPWRITE_CONFIG, Query } from '../lib/appwrite';
+import { api } from '../services/api';
 import { Search, FileText, Plus, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { SummaryModal } from '../components/SummaryModal';
 
-const Summaries = () => {
+export const Summaries = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summaries, setSummaries] = useState<any[]>([]);
@@ -17,18 +17,10 @@ const Summaries = () => {
 
   const fetchSummaries = useCallback(async () => {
     try {
-      const courseRes = await databases.getDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.coursesCollectionId,
-        id!
-      );
+      const courseRes = await api.getCourse(id!);
       setCourse(courseRes);
 
-      const summariesRes = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.summariesCollectionId,
-        [Query.equal('courseID', id!)]
-      );
+      const summariesRes = await api.getSummaries(id!);
       setSummaries(summariesRes.documents);
     } catch (error) {
       console.error('Error fetching summaries', error);
@@ -120,5 +112,3 @@ const Summaries = () => {
     </div>
   );
 };
-
-export default Summaries;

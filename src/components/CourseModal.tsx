@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Loader2, Eye, Edit3 } from 'lucide-react';
-import { databases, storage, APPWRITE_CONFIG, ID } from '../lib/appwrite';
+import { api } from '../services/api';
 import { NestedMarkdown } from './NestedMarkdown';
 
 interface CourseModalProps {
@@ -14,17 +14,11 @@ interface CourseModalProps {
 const fetchFileContent = async (fileId: string) => {
   if (!fileId) return '';
   try {
-    let url = fileId;
-    if (/^[a-zA-Z0-9_.-]+$/.test(fileId) && fileId.length < 50) {
-      const fileUrl = storage.getFileDownload(APPWRITE_CONFIG.storageBucketId, fileId);
-      url = fileUrl.toString();
-    }
-    if (url.startsWith('http')) {
-      const res = await fetch(url);
-      const isHtml = res.headers.get('content-type')?.includes('text/html');
-      if (res.ok && !isHtml) {
-        return await res.text();
-      }
+    const url = await api.getFileView(fileId);
+    const res = await fetch(url);
+    const isHtml = res.headers.get('content-type')?.includes('text/html');
+    if (res.ok && !isHtml) {
+      return await res.text();
     }
     return fileId;
   } catch (e) {
@@ -38,12 +32,12 @@ const uploadContent = async (content: string, filename: string, fileId: string) 
   
   try {
     // Try to delete existing file with same ID to allow "overwrite"
-    await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+    await api.deleteFile(fileId);
   } catch (e) {
     // Ignore if file doesn't exist
   }
 
-  const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, fileId, file);
+  const res = await api.createFile(file, fileId);
   return res.$id;
 };
 
@@ -54,6 +48,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
   const [overviewContent, setOverviewContent] = useState('');
   const [definitionsContent, setDefinitionsContent] = useState('');
   const [claimsContent, setClaimsContent] = useState('');
+  
+  const [overviewUrl, setOverviewUrl] = useState('');
+  const [definitionsUrl, setDefinitionsUrl] = useState('');
+  const [claimsUrl, setClaimsUrl] = useState('');
   
   const [origOverview, setOrigOverview] = useState('');
   const [origDefinitions, setOrigDefinitions] = useState('');
@@ -79,16 +77,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       const filesToDelete = [course.overviewID, course.definitionsID, course.claimsID].filter(Boolean);
       for (const fileId of filesToDelete) {
         try {
-          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, fileId);
+          await api.deleteFile(fileId);
         } catch (e) {
           console.error('Error deleting file:', e);
         }
       }
-      await databases.deleteDocument(
-        APPWRITE_CONFIG.databaseId,
-        APPWRITE_CONFIG.coursesCollectionId,
-        course.$id
-      );
+      await api.deleteCourse(course.$id);
       onSave();
       onClose();
     } catch (err: any) {
@@ -111,7 +105,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
 
           const checkFileType = async (fileId: string) => {
             try {
-              const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileId);
+              const file = await api.getFile(fileId);
               if (file.mimeType === 'application/pdf') return 'pdf';
               if (file.name.endsWith('.tex')) return 'tex';
               return 'md';
@@ -120,10 +114,13 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
             }
           };
 
-          const [ov, def, cl] = await Promise.all([
+          const [ov, def, cl, ovUrl, defUrl, clUrl] = await Promise.all([
             fetchFileContent(course.overviewID),
             fetchFileContent(course.definitionsID),
-            fetchFileContent(course.claimsID)
+            fetchFileContent(course.claimsID),
+            course.overviewID ? api.getFileView(course.overviewID) : Promise.resolve(''),
+            course.definitionsID ? api.getFileView(course.definitionsID) : Promise.resolve(''),
+            course.claimsID ? api.getFileView(course.claimsID) : Promise.resolve('')
           ]);
           
           setOverviewFileType(await checkFileType(course.overviewID));
@@ -133,6 +130,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
           setOverviewContent(ov);
           setDefinitionsContent(def);
           setClaimsContent(cl);
+          
+          setOverviewUrl(ovUrl);
+          setDefinitionsUrl(defUrl);
+          setClaimsUrl(clUrl);
           
           setOrigOverview(ov);
           setOrigDefinitions(def);
@@ -147,6 +148,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         setOverviewContent('');
         setDefinitionsContent('');
         setClaimsContent('');
+        setOverviewUrl('');
+        setDefinitionsUrl('');
+        setClaimsUrl('');
         setOrigOverview('');
         setOrigDefinitions('');
         setOrigClaims('');
@@ -173,9 +177,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
             try {
-              await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+              await api.deleteFile(oldFileId);
             } catch (e) {}
-            const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, contentOrFile);
+            const res = await api.createFile(contentOrFile, id);
             return res.$id;
           }
           return oldFileId;
@@ -220,20 +224,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       };
 
       if (course) {
-        await databases.updateDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.coursesCollectionId,
-          course.$id,
-          data
-        );
+        await api.updateCourse(course.$id, data);
       } else {
         const docId = courseNum.trim(); // Use exact number as ID as requested
-        await databases.createDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.coursesCollectionId,
-          docId,
-          data
-        );
+        await api.createCourse(docId, data);
       }
       onSave();
       onClose();
@@ -339,8 +333,8 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     {overviewFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">סילבוס זה הוא קובץ PDF.</p>
-                        {course?.overviewID && (
-                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.overviewID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        {course?.overviewID && overviewUrl && (
+                          <a href={overviewUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">
@@ -381,8 +375,8 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     {definitionsFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">דף הגדרות זה הוא קובץ PDF.</p>
-                        {course?.definitionsID && (
-                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.definitionsID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        {course?.definitionsID && definitionsUrl && (
+                          <a href={definitionsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">
@@ -423,8 +417,8 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     {claimsFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">דף משפטים זה הוא קובץ PDF.</p>
-                        {course?.claimsID && (
-                          <a href={storage.getFileView(APPWRITE_CONFIG.storageBucketId, course.claimsID).toString()} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                        {course?.claimsID && claimsUrl && (
+                          <a href={claimsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">

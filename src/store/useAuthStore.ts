@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { account, databases, APPWRITE_CONFIG, ID } from '../lib/appwrite';
+import { api } from '../services/api';
 
 interface AuthState {
   user: any | null;
@@ -19,40 +19,36 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   checkAuth: async () => {
     try {
-      const currentAccount = await account.get();
-      console.log('Current User Labels:', currentAccount.labels);
-      const isAdmin = currentAccount.labels?.includes('admin') || false;
-      console.log('Is Admin:', isAdmin);
-      set({ user: currentAccount, isAdmin });
-    } catch (error) {
+      const user = await api.me();
+      if (user) {
+        set({ user, isAdmin: user.labels?.includes('admin') || false });
+      } else {
+        set({ user: null, isAdmin: false });
+      }
+    } catch (e) {
       set({ user: null, isAdmin: false });
     } finally {
       set({ isLoading: false });
     }
   },
   login: async (email, pass) => {
-    await account.createEmailPasswordSession(email, pass);
-    const { checkAuth } = useAuthStore.getState();
-    await checkAuth();
+    const user = await api.login(email, pass);
+    set({ user, isAdmin: user.labels?.includes('admin') || false });
   },
   signup: async (email, pass, name) => {
-    await account.create(ID.unique(), email, pass, name);
-    await account.createEmailPasswordSession(email, pass);
-    const { checkAuth } = useAuthStore.getState();
-    await checkAuth();
+    const user = await api.signup(email, pass, name);
+    set({ user, isAdmin: user.labels?.includes('admin') || false });
   },
   updateName: async (name) => {
-    await account.updateName(name);
-    const { checkAuth } = useAuthStore.getState();
-    await checkAuth();
+    const user = await api.updateName(name);
+    set({ user });
   },
   updateEmail: async (email, pass) => {
-    await account.updateEmail(email, pass);
-    const { checkAuth } = useAuthStore.getState();
-    await checkAuth();
+    const user = await api.updateEmail(email, pass);
+    set({ user });
   },
   logout: async () => {
-    await account.deleteSession('current');
+    await api.logout();
     set({ user: null, isAdmin: false });
   }
 }));
