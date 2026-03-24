@@ -1,26 +1,77 @@
 export const api = {
   async getCourses() {
     const res = await fetch('/api/courses');
-    if (!res.ok) throw new Error('Failed to fetch courses');
+    if (!res.ok) {
+      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
+      try {
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // Not JSON, show first 100 chars of text
+          errorMessage += ` - ${text.substring(0, 100)}...`;
+        }
+      } catch (e) {
+        // Could not even get text
+      }
+      throw new Error(errorMessage);
+    }
     return await res.json();
   },
 
   async getCourse(id: string) {
     const res = await fetch(`/api/courses/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch course');
+    if (!res.ok) {
+      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
+      try {
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage += ` - ${text.substring(0, 100)}...`;
+        }
+      } catch (e) {}
+      throw new Error(errorMessage);
+    }
     return await res.json();
   },
 
   async getSummaries(courseId?: string) {
     const url = courseId ? `/api/summaries?courseId=${courseId}` : '/api/summaries';
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch summaries');
+    if (!res.ok) {
+      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
+      try {
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage += ` - ${text.substring(0, 100)}...`;
+        }
+      } catch (e) {}
+      throw new Error(errorMessage);
+    }
     return await res.json();
   },
 
   async getSummary(id: string) {
     const res = await fetch(`/api/summaries/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch summary');
+    if (!res.ok) {
+      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
+      try {
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage += ` - ${text.substring(0, 100)}...`;
+        }
+      } catch (e) {}
+      throw new Error(errorMessage);
+    }
     return await res.json();
   },
 
@@ -34,14 +85,20 @@ export const api = {
 
   async getEnrollment(userId: string, courseId: string) {
     const res = await fetch(`/api/enrollments?userId=${userId}&courseId=${courseId}`);
-    if (!res.ok) throw new Error('Failed to fetch enrollment');
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to fetch enrollment');
+    }
     const data = await res.json();
     return data.documents[0] || null;
   },
 
   async getEnrollments(userId: string) {
     const res = await fetch(`/api/enrollments?userId=${userId}`);
-    if (!res.ok) throw new Error('Failed to fetch enrollments');
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to fetch enrollments');
+    }
     return await res.json();
   },
 

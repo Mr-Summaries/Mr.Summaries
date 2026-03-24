@@ -36,24 +36,32 @@ export async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Appwrite Server Client
+  const endpoint = process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
+  const projectId = process.env.APPWRITE_PROJECT_ID;
+  const apiKey = process.env.APPWRITE_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.warn("WARNING: APPWRITE_PROJECT_ID or APPWRITE_API_KEY is missing. Appwrite features will fail.");
+  }
+
   const appwriteClient = new Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-    .setProject(process.env.APPWRITE_PROJECT_ID || 'mr-summaries')
-    .setKey(process.env.APPWRITE_API_KEY || '');
+    .setEndpoint(endpoint)
+    .setProject(projectId || 'mr-summaries')
+    .setKey(apiKey || '');
 
   const appwriteDatabases = new Databases(appwriteClient);
   const appwriteStorage = new Storage(appwriteClient);
   const appwriteUsers = new Users(appwriteClient);
 
   const APPWRITE_CONFIG = {
-    databaseId: 'mr-summaries-db',
-    coursesCollectionId: 'courses',
-    summariesCollectionId: 'summaries',
-    lecturesCollectionId: 'lectures',
-    examplesCollectionId: 'examples',
-    enrollmentsCollectionId: 'enrollments',
-    adminsCollectionId: 'admins',
-    storageBucketId: 'summaries-bk',
+    databaseId: process.env.APPWRITE_DATABASE_ID || 'mr-summaries-db',
+    coursesCollectionId: process.env.APPWRITE_COURSES_COLLECTION_ID || 'courses',
+    summariesCollectionId: process.env.APPWRITE_SUMMARIES_COLLECTION_ID || 'summaries',
+    lecturesCollectionId: process.env.APPWRITE_LECTURES_COLLECTION_ID || 'lectures',
+    examplesCollectionId: process.env.APPWRITE_EXAMPLES_COLLECTION_ID || 'examples',
+    enrollmentsCollectionId: process.env.APPWRITE_ENROLLMENTS_COLLECTION_ID || 'enrollments',
+    adminsCollectionId: process.env.APPWRITE_ADMINS_COLLECTION_ID || 'admins',
+    storageBucketId: process.env.APPWRITE_STORAGE_BUCKET_ID || 'summaries-bk',
   };
 
   // API routes FIRST
@@ -61,16 +69,35 @@ export async function startServer() {
     res.json({ status: "ok" });
   });
 
+  app.get("/api/debug/env", (req, res) => {
+    res.json({
+      endpoint,
+      projectId: projectId ? "SET" : "MISSING",
+      apiKey: apiKey ? `SET (length: ${apiKey.length})` : "MISSING",
+      config: APPWRITE_CONFIG,
+      nodeEnv: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL
+    });
+  });
+
   // Appwrite Data Proxy Endpoints
   app.get("/api/courses", async (req, res) => {
     try {
+      if (!APPWRITE_CONFIG.databaseId || !APPWRITE_CONFIG.coursesCollectionId) {
+        throw new Error("Appwrite Database or Collection ID is not configured");
+      }
       const result = await appwriteDatabases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.coursesCollectionId
       );
       res.json(result);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error("Appwrite Error (listDocuments):", error);
+      let msg = error.message || "Unknown Appwrite error";
+      if (msg.includes("Collection not found") || msg.includes("Database not found")) {
+        msg += ` (Collection ID: ${APPWRITE_CONFIG.coursesCollectionId}, Database ID: ${APPWRITE_CONFIG.databaseId})`;
+      }
+      res.status(500).json({ error: msg || "Unknown Appwrite error" });
     }
   });
 
@@ -572,7 +599,16 @@ export async function startServer() {
   return app;
 }
 
-const appPromise = startServer();
+const appPromise = startServer().catch(err => {
+  console.error("CRITICAL: Failed to start server:", err);
+  // Return a dummy app that just shows the error
+  const app = express();
+  app.all('*', (req, res) => {
+    res.status(500).json({ error: "Server failed to start", details: err.message });
+  });
+  return app;
+});
+
 export default async (req: any, res: any) => {
   const app = await appPromise;
   return app(req, res);
