@@ -6,12 +6,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { LectureModal } from '../components/LectureModal';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 export const Lecture = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [lecture, setLecture] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
 
@@ -29,8 +31,10 @@ export const Lecture = () => {
           const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, res.fileID);
           
           if (file.mimeType === 'application/pdf') {
-            setContent(`[צפה בקובץ ה-PDF](${storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString()})`);
+            setPdfUrl(storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString());
+            setContent('');
           } else {
+            setPdfUrl(null);
             let urlToFetch = res.fileID;
             if (/^[a-zA-Z0-9_.-]+$/.test(res.fileID) && res.fileID.length < 100) {
               const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID);
@@ -125,10 +129,14 @@ export const Lecture = () => {
         )}
       </div>
 
-      <NestedMarkdown 
-        content={content} 
-        rightAlign={lecture.rightAlign} 
-      />
+      {pdfUrl ? (
+        <PdfTextRenderer url={pdfUrl} rightAlign={lecture.rightAlign} />
+      ) : (
+        <NestedMarkdown 
+          content={content} 
+          rightAlign={lecture.rightAlign} 
+        />
+      )}
 
       <LectureModal 
         isOpen={isLectureModalOpen} 

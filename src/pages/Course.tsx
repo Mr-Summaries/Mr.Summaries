@@ -10,6 +10,7 @@ import { SummaryModal } from '../components/SummaryModal';
 import { LectureModal } from '../components/LectureModal';
 import { ExampleModal } from '../components/ExampleModal';
 import { AddPageModal } from '../components/AddPageModal';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 export const Course = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ export const Course = () => {
   const { user, isAdmin } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
@@ -78,8 +80,10 @@ export const Course = () => {
           const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
           
           if (file.mimeType === 'application/pdf') {
-            setContent(`[צפה בקובץ ה-PDF](${storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch).toString()})`);
+            setPdfUrl(storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch).toString());
+            setContent('');
           } else {
+            setPdfUrl(null);
             let urlToFetch = fileIdToFetch;
             if (/^[a-zA-Z0-9_.-]+$/.test(fileIdToFetch) && fileIdToFetch.length < 100) {
               const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, fileIdToFetch);
@@ -422,6 +426,8 @@ export const Course = () => {
             )}
           </div>
         </div>
+      ) : pdfUrl ? (
+        <PdfTextRenderer url={pdfUrl} rightAlign={course.rightAlign} />
       ) : (
         <NestedMarkdown content={content} rightAlign={course.rightAlign} />
       )}

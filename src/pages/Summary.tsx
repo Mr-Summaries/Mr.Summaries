@@ -7,12 +7,14 @@ import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { SummaryModal } from '../components/SummaryModal';
 import { TableOfContents } from '../components/TableOfContents';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 export const Summary = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [tocItems, setTocItems] = useState<{ id: string, title: string, level: number }[]>([]);
@@ -31,8 +33,10 @@ export const Summary = () => {
           const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, res.fileID);
           
           if (file.mimeType === 'application/pdf') {
-            setContent(`[צפה בקובץ ה-PDF](${storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString()})`);
+            setPdfUrl(storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID).toString());
+            setContent('');
           } else {
+            setPdfUrl(null);
             let urlToFetch = res.fileID;
             if (/^[a-zA-Z0-9_.-]+$/.test(res.fileID) && res.fileID.length < 100) {
               const fileUrl = storage.getFileView(APPWRITE_CONFIG.storageBucketId, res.fileID);
@@ -104,7 +108,7 @@ export const Summary = () => {
           <div className="flex justify-between items-start mb-8">
             <div>
               {courseId ? (
-                <Link to={`/course/${courseId}/summaries`} className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
+                <Link to={`/course/${courseId}?tab=summaries`} className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
                   <ArrowRight className="w-4 h-4" />
                   חזרה לסיכומים
                 </Link>
@@ -129,14 +133,18 @@ export const Summary = () => {
             )}
           </div>
 
-          <NestedMarkdown 
-            content={content} 
-            rightAlign={summary.rightAlign} 
-            onTOCChange={setTocItems}
-          />
+          {pdfUrl ? (
+            <PdfTextRenderer url={pdfUrl} rightAlign={summary.rightAlign} />
+          ) : (
+            <NestedMarkdown 
+              content={content} 
+              rightAlign={summary.rightAlign} 
+              onTOCChange={setTocItems}
+            />
+          )}
         </div>
 
-        <TableOfContents items={tocItems} />
+        {!pdfUrl && <TableOfContents items={tocItems} />}
       </div>
 
       <SummaryModal 

@@ -56,8 +56,8 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
-  const [isPdf, setIsPdf] = useState(false);
-  const [newPdfFile, setNewPdfFile] = useState<File | null>(null);
+  const [fileType, setFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
     if (!lecture || !confirm('האם אתה בטוח שברצונך למחוק הרצאה זו?')) return;
@@ -94,19 +94,26 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
         
         const loadContent = async () => {
           setIsLoadingContent(true);
-          setIsPdf(false);
-          setNewPdfFile(null);
+          setFileType('md');
+          setNewFile(null);
           try {
             const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, lecture.fileID);
             if (file.mimeType === 'application/pdf') {
-              setIsPdf(true);
+              setFileType('pdf');
+            } else if (file.name.endsWith('.tex')) {
+              setFileType('tex');
+              const text = await fetchFileContent(lecture.fileID);
+              setContent(text);
+              setOrigContent(text);
             } else {
+              setFileType('md');
               const text = await fetchFileContent(lecture.fileID);
               setContent(text);
               setOrigContent(text);
             }
           } catch (e) {
             console.error('Error loading file:', e);
+            setFileType('md');
             const text = await fetchFileContent(lecture.fileID);
             setContent(text);
             setOrigContent(text);
@@ -119,8 +126,8 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
         setRightAlign(false);
         setContent('');
         setOrigContent('');
-        setIsPdf(false);
-        setNewPdfFile(null);
+        setFileType('md');
+        setNewFile(null);
       }
     }
   }, [lecture, isOpen]);
@@ -138,19 +145,31 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
       
       let finalFileId = lecture?.fileID || '';
       
-      if (isPdf) {
-        if (newPdfFile) {
+      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf' | 'tex') => {
+        if (type === 'pdf') {
+          if (contentOrFile instanceof File) {
+            try {
+              await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+            } catch (e) {}
+            const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, contentOrFile);
+            return res.$id;
+          }
+          return oldFileId;
+        } else {
+          const content = contentOrFile instanceof File ? await contentOrFile.text() : contentOrFile;
+          const filename = `${id}.${type}`;
+          return await uploadContent(content, filename, id);
+        }
+      };
+
+      if (fileType === 'pdf') {
+        if (newFile) {
           const id = `lecture-${lectureName}-${courseNum}`.toLowerCase();
-          try {
-            await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, finalFileId);
-          } catch (e) {}
-          const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, newPdfFile);
-          finalFileId = res.$id;
+          finalFileId = await uploadFile(newFile, id, finalFileId, 'pdf');
         }
       } else if (content !== origContent || isNameChanged || isCourseNumChanged) {
         const id = `lecture-${lectureName}-${courseNum}`.toLowerCase();
-        const filename = `Lecture-${lectureName}-${courseNum}.md`;
-        finalFileId = content.trim() ? await uploadContent(content, filename, id) : '';
+        finalFileId = await uploadFile(content, id, finalFileId, fileType);
       }
 
       const data: any = {
@@ -252,21 +271,10 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">סוג תוכן:</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsPdf(false)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!isPdf ? 'bg-cyan-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                    >
-                      Markdown
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsPdf(true)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isPdf ? 'bg-cyan-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                    >
-                      PDF
-                    </button>
+                  <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                    <button type="button" onClick={() => setFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                    <button type="button" onClick={() => setFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
+                    <button type="button" onClick={() => setFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                   </div>
                 </div>
               </div>
@@ -276,11 +284,11 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
                   <Loader2 className="w-8 h-8 animate-spin mb-4" />
                   <p>טוען תוכן...</p>
                 </div>
-              ) : isPdf ? (
+              ) : fileType === 'pdf' ? (
                 <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                   <p className="font-bold mb-2">הרצאה זו היא קובץ PDF.</p>
                   <p>כדי לעדכן אותה, יש להעלות קובץ PDF חדש.</p>
-                  <input type="file" accept="application/pdf" className="mt-4 w-full" onChange={(e) => setNewPdfFile(e.target.files?.[0] || null)} />
+                  <input type="file" accept="application/pdf" className="mt-4 w-full" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -300,7 +308,7 @@ export const LectureModal: React.FC<LectureModalProps> = React.memo(({ isOpen, o
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">תצוגה מקדימה</label>
                     <div className="w-full px-6 py-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[480px] overflow-y-auto prose dark:prose-invert max-w-none">
-                      {content ? <NestedMarkdown content={content} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                      {content ? <NestedMarkdown content={content} rightAlign={rightAlign} fileType={fileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                     </div>
                   </div>
                 </div>

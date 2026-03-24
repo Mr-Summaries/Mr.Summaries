@@ -64,12 +64,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
   
-  const [isOverviewPdf, setIsOverviewPdf] = useState(false);
-  const [newOverviewPdf, setNewOverviewPdf] = useState<File | null>(null);
-  const [isDefinitionsPdf, setIsDefinitionsPdf] = useState(false);
-  const [newDefinitionsPdf, setNewDefinitionsPdf] = useState<File | null>(null);
-  const [isClaimsPdf, setIsClaimsPdf] = useState(false);
-  const [newClaimsPdf, setNewClaimsPdf] = useState<File | null>(null);
+  const [overviewFileType, setOverviewFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [newOverviewFile, setNewOverviewFile] = useState<File | null>(null);
+  const [definitionsFileType, setDefinitionsFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [newDefinitionsFile, setNewDefinitionsFile] = useState<File | null>(null);
+  const [claimsFileType, setClaimsFileType] = useState<'md' | 'pdf' | 'tex'>('md');
+  const [newClaimsFile, setNewClaimsFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
     if (!course || !confirm('האם אתה בטוח שברצונך למחוק קורס זה?')) return;
@@ -108,19 +108,15 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         
         const loadContents = async () => {
           setIsLoadingContent(true);
-          setIsOverviewPdf(false);
-          setIsDefinitionsPdf(false);
-          setIsClaimsPdf(false);
-          setNewOverviewPdf(null);
-          setNewDefinitionsPdf(null);
-          setNewClaimsPdf(null);
 
-          const checkPdf = async (fileId: string) => {
+          const checkFileType = async (fileId: string) => {
             try {
               const file = await storage.getFile(APPWRITE_CONFIG.storageBucketId, fileId);
-              return file.mimeType === 'application/pdf';
+              if (file.mimeType === 'application/pdf') return 'pdf';
+              if (file.name.endsWith('.tex')) return 'tex';
+              return 'md';
             } catch (e) {
-              return false;
+              return 'md';
             }
           };
 
@@ -130,9 +126,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
             fetchFileContent(course.claimsID)
           ]);
           
-          setIsOverviewPdf(await checkPdf(course.overviewID));
-          setIsDefinitionsPdf(await checkPdf(course.definitionsID));
-          setIsClaimsPdf(await checkPdf(course.claimsID));
+          setOverviewFileType(await checkFileType(course.overviewID));
+          setDefinitionsFileType(await checkFileType(course.definitionsID));
+          setClaimsFileType(await checkFileType(course.claimsID));
           
           setOverviewContent(ov);
           setDefinitionsContent(def);
@@ -154,12 +150,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         setOrigOverview('');
         setOrigDefinitions('');
         setOrigClaims('');
-        setIsOverviewPdf(false);
-        setIsDefinitionsPdf(false);
-        setIsClaimsPdf(false);
-        setNewOverviewPdf(null);
-        setNewDefinitionsPdf(null);
-        setNewClaimsPdf(null);
+        setOverviewFileType('md');
+        setDefinitionsFileType('md');
+        setClaimsFileType('md');
+        setNewOverviewFile(null);
+        setNewDefinitionsFile(null);
+        setNewClaimsFile(null);
       }
     }
   }, [course, isOpen]);
@@ -173,39 +169,45 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       const courseNum = number.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       const isNumberChanged = course && courseNum !== course.number?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
-      const uploadPdf = async (file: File, id: string, oldFileId: string) => {
-        try {
-          await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
-        } catch (e) {}
-        const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, file);
-        return res.$id;
+      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf' | 'tex') => {
+        if (type === 'pdf') {
+          if (contentOrFile instanceof File) {
+            try {
+              await storage.deleteFile(APPWRITE_CONFIG.storageBucketId, oldFileId);
+            } catch (e) {}
+            const res = await storage.createFile(APPWRITE_CONFIG.storageBucketId, id, contentOrFile);
+            return res.$id;
+          }
+          return oldFileId;
+        } else {
+          const content = contentOrFile instanceof File ? await contentOrFile.text() : contentOrFile;
+          const filename = `${id}.${type}`;
+          return await uploadContent(content, filename, id);
+        }
       };
 
       let finalOvId = course?.overviewID || '';
-      if (isOverviewPdf) {
-        if (newOverviewPdf) finalOvId = await uploadPdf(newOverviewPdf, `overview-${courseNum}`.toLowerCase(), finalOvId);
+      if (overviewFileType === 'pdf') {
+        if (newOverviewFile) finalOvId = await uploadFile(newOverviewFile, `overview-${courseNum}`.toLowerCase(), finalOvId, 'pdf');
       } else if (overviewContent !== origOverview || isNumberChanged) {
         const id = `overview-${courseNum}`.toLowerCase();
-        const filename = `Overview-${courseNum}.md`;
-        finalOvId = overviewContent.trim() ? await uploadContent(overviewContent, filename, id) : '';
+        finalOvId = await uploadFile(overviewContent, id, finalOvId, overviewFileType);
       }
 
       let finalDefId = course?.definitionsID || '';
-      if (isDefinitionsPdf) {
-        if (newDefinitionsPdf) finalDefId = await uploadPdf(newDefinitionsPdf, `definitions-${courseNum}`.toLowerCase(), finalDefId);
+      if (definitionsFileType === 'pdf') {
+        if (newDefinitionsFile) finalDefId = await uploadFile(newDefinitionsFile, `definitions-${courseNum}`.toLowerCase(), finalDefId, 'pdf');
       } else if (definitionsContent !== origDefinitions || isNumberChanged) {
         const id = `definitions-${courseNum}`.toLowerCase();
-        const filename = `Definitions-${courseNum}.md`;
-        finalDefId = definitionsContent.trim() ? await uploadContent(definitionsContent, filename, id) : '';
+        finalDefId = await uploadFile(definitionsContent, id, finalDefId, definitionsFileType);
       }
 
       let finalClId = course?.claimsID || '';
-      if (isClaimsPdf) {
-        if (newClaimsPdf) finalClId = await uploadPdf(newClaimsPdf, `claims-${courseNum}`.toLowerCase(), finalClId);
+      if (claimsFileType === 'pdf') {
+        if (newClaimsFile) finalClId = await uploadFile(newClaimsFile, `claims-${courseNum}`.toLowerCase(), finalClId, 'pdf');
       } else if (claimsContent !== origClaims || isNumberChanged) {
         const id = `claims-${courseNum}`.toLowerCase();
-        const filename = `Claims-${courseNum}.md`;
-        finalClId = claimsContent.trim() ? await uploadContent(claimsContent, filename, id) : '';
+        finalClId = await uploadFile(claimsContent, id, finalClId, claimsFileType);
       }
 
       const data = {
@@ -329,11 +331,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">סילבוס / סקירה</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setIsOverviewPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isOverviewPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setIsOverviewPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isOverviewPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                        <button type="button" onClick={() => setOverviewFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setOverviewFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
+                        <button type="button" onClick={() => setOverviewFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
-                    {isOverviewPdf ? (
+                    {overviewFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">סילבוס זה הוא קובץ PDF.</p>
                         {course?.overviewID && (
@@ -343,9 +346,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                         <div className="mt-4">
                           <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
                             בחר קובץ PDF חדש
-                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewOverviewPdf(e.target.files?.[0] || null)} />
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewOverviewFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newOverviewPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newOverviewPdf.name}</p>}
+                          {newOverviewFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newOverviewFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -356,10 +359,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setOverviewContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder="# סילבוס הקורס..."
+                          placeholder={overviewFileType === 'tex' ? "\\documentclass{article}..." : "# סילבוס הקורס..."}
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} fileType={overviewFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}
@@ -370,11 +373,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">הגדרות</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setIsDefinitionsPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isDefinitionsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setIsDefinitionsPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isDefinitionsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                        <button type="button" onClick={() => setDefinitionsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setDefinitionsFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
+                        <button type="button" onClick={() => setDefinitionsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
-                    {isDefinitionsPdf ? (
+                    {definitionsFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">דף הגדרות זה הוא קובץ PDF.</p>
                         {course?.definitionsID && (
@@ -384,9 +388,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                         <div className="mt-4">
                           <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
                             בחר קובץ PDF חדש
-                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewDefinitionsPdf(e.target.files?.[0] || null)} />
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewDefinitionsFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newDefinitionsPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newDefinitionsPdf.name}</p>}
+                          {newDefinitionsFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newDefinitionsFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -397,10 +401,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setDefinitionsContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder="## הגדרות..."
+                          placeholder={definitionsFileType === 'tex' ? "\\documentclass{article}..." : "## הגדרות..."}
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} fileType={definitionsFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}
@@ -411,11 +415,12 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">משפטים</h3>
                       <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setIsClaimsPdf(false)} className={`px-3 py-1 rounded-md text-xs transition-colors ${!isClaimsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setIsClaimsPdf(true)} className={`px-3 py-1 rounded-md text-xs transition-colors ${isClaimsPdf ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                        <button type="button" onClick={() => setClaimsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setClaimsFileType('tex')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'tex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>LaTeX</button>
+                        <button type="button" onClick={() => setClaimsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
-                    {isClaimsPdf ? (
+                    {claimsFileType === 'pdf' ? (
                       <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
                         <p className="font-bold mb-2">דף משפטים זה הוא קובץ PDF.</p>
                         {course?.claimsID && (
@@ -425,9 +430,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                         <div className="mt-4">
                           <label className="cursor-pointer inline-block bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors">
                             בחר קובץ PDF חדש
-                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewClaimsPdf(e.target.files?.[0] || null)} />
+                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewClaimsFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newClaimsPdf && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newClaimsPdf.name}</p>}
+                          {newClaimsFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newClaimsFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -438,10 +443,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           onChange={(e) => setClaimsContent(e.target.value)}
                           className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
-                          placeholder="## משפטים חשובים..."
+                          placeholder={claimsFileType === 'tex' ? "\\documentclass{article}..." : "## משפטים חשובים..."}
                         />
                         <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
-                          {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
+                          {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} fileType={claimsFileType as 'md' | 'tex'} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
                     )}
