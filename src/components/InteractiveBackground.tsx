@@ -15,8 +15,10 @@ export const InteractiveBackground = memo(() => {
     const mouse = { x: 0, y: 0, radius: 150 };
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const { width, height } = canvas.getBoundingClientRect();
+      canvas.width = width;
+      canvas.height = height;
+      init();
     };
 
     class Particle {
@@ -120,27 +122,31 @@ export const InteractiveBackground = memo(() => {
       animationFrameId = requestAnimationFrame(animate);
     };
 
+    const observer = new ResizeObserver(() => {
+      resize();
+    });
+
+    observer.observe(canvas.parentElement || document.body);
+
     const handleMouseMove = (event: MouseEvent) => {
       mouse.x = event.clientX;
       mouse.y = event.clientY;
     };
 
-    window.addEventListener('resize', resize);
     window.addEventListener('mousemove', handleMouseMove);
     
     resize();
-    init();
     animate();
 
     return () => {
-      window.removeEventListener('resize', resize);
+      observer.disconnect();
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-zinc-100 dark:bg-zinc-950 transition-colors duration-500">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-zinc-100 dark:bg-zinc-950 transition-colors duration-500" dir="ltr">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full opacity-40 dark:opacity-40"

@@ -43,8 +43,8 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center w-full max-w-4xl mx-auto" dir="ltr">
-      <div className="w-full flex flex-col gap-6 p-4 sm:p-8 bg-zinc-200/30 dark:bg-zinc-950/30 rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
+    <div ref={containerRef} className="flex flex-col items-center w-full max-w-4xl mx-auto">
+      <div className="w-full flex flex-col items-center gap-6 p-4 sm:p-8 bg-zinc-200/30 dark:bg-zinc-950/30 rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -60,7 +60,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
               <p className="text-sm opacity-80">וודא שהקישור תקין או נסה להוריד את הקובץ ישירות.</p>
             </div>
           }
-          className="flex flex-col items-center gap-8"
+          className="flex flex-col items-center justify-center gap-8 w-full"
         >
           {numPages && Array.from(new Array(numPages), (el, index) => (
             <div key={`page_${index + 1}`} className="shadow-2xl rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white">

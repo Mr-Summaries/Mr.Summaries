@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useDeferredValue } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { BookOpen, FileText, List, Bookmark, Edit2, BookmarkPlus, BookmarkCheck, Search, Plus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -13,6 +13,7 @@ import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 export const Course = () => {
+  const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
   const { user, isAdmin } = useAuthStore();
@@ -167,7 +168,10 @@ export const Course = () => {
   }, [fetchCourse, fetchSummaries, fetchLectures, fetchExamples, id]);
 
   const toggleEnrollment = async () => {
-    if (!user) return;
+    if (!user) {
+      navigate('/login');
+      return;
+    }
 
     try {
       if (isEnrolled && enrollmentId) {
@@ -213,19 +217,17 @@ export const Course = () => {
           </span>
         </div>
         <div className="flex gap-3">
-          {user && (
-            <button 
-              onClick={toggleEnrollment}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
-                isEnrolled 
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' 
-                  : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900/50'
-              }`}
-            >
-              {isEnrolled ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
-              {isEnrolled ? 'רשום לקורס' : 'הירשם לקורס'}
-            </button>
-          )}
+          <button 
+            onClick={toggleEnrollment}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+              isEnrolled 
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' 
+                : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900/50'
+            }`}
+          >
+            {isEnrolled ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
+            {isEnrolled ? 'רשום לקורס' : 'הירשם לקורס'}
+          </button>
           {isAdmin && (
             <div className="flex gap-2">
               <button 
