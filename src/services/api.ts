@@ -1,8 +1,8 @@
 import { Client, Databases, Storage, Account, ID, Query } from 'appwrite';
 
 const client = new Client()
-    .setEndpoint('https://fra.cloud.appwrite.io/v1')
-    .setProject('mr-summaries');
+    .setEndpoint('https://cloud.appwrite.io/v1')
+    .setProject('mr-summaries'); // וודא שזהו אכן ה-Project ID שלך מהקונסול
 
 const databases = new Databases(client);
 const storage = new Storage(client);

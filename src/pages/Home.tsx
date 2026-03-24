@@ -26,10 +26,26 @@ const Home = () => {
 
       // Fetch enrollments if user is logged in
       if (user) {
-        // Enrollments are also fetched via API now
-        // For now, let's just use empty enrollments to simplify the transition
-        setEnrolledCourseIds([]);
-        setEnrollments({});
+        try {
+          const enrollRes = await api.getEnrollments(user.$id);
+          const ids = enrollRes.documents.map((e: any) => e.courseID);
+          const map: Record<string, string> = {};
+          enrollRes.documents.forEach((e: any) => {
+            map[e.courseID] = e.$id;
+          });
+          setEnrolledCourseIds(ids);
+          setEnrollments(map);
+        } catch (e: any) {
+          console.error('Error fetching enrollments', e);
+          // If it's a 404 or index error, show a more helpful message in console
+          if (e.code === 404) {
+            console.warn('Collection "enrollments" not found. Check your collection ID.');
+          } else if (e.message?.includes('index')) {
+            console.warn('Missing index for "userID" in "enrollments" collection. Create it in Appwrite Console.');
+          }
+          setEnrolledCourseIds([]);
+          setEnrollments({});
+        }
       } else {
         setEnrolledCourseIds([]);
         setEnrollments({});
