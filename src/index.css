@@ -1,4 +1,9 @@
 @import "tailwindcss";
+
+.katex {
+  direction: ltr;
+  unicode-bidi: embed;
+}
 @plugin "@tailwindcss/typography";
 
 @variant dark (&:where(.dark, .dark *));
