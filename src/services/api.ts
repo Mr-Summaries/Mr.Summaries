@@ -1,345 +1,184 @@
+import { Client, Databases, Storage, Account, ID, Query } from 'appwrite';
+
+const client = new Client()
+    .setEndpoint('https://fra.cloud.appwrite.io/v1')
+    .setProject('mr-summaries');
+
+const databases = new Databases(client);
+const storage = new Storage(client);
+const account = new Account(client);
+
+const DATABASE_ID = 'mr-summaries-db';
+const COLLECTIONS = {
+    courses: 'courses',
+    summaries: 'summaries',
+    lectures: 'lectures',
+    examples: 'examples',
+    enrollments: 'enrollments',
+};
+const BUCKET_ID = 'summaries-bk';
+
 export const api = {
   async getCourses() {
-    const res = await fetch('/api/courses');
-    if (!res.ok) {
-      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
-      try {
-        const text = await res.text();
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          // Not JSON, show first 100 chars of text
-          errorMessage += ` - ${text.substring(0, 100)}...`;
-        }
-      } catch (e) {
-        // Could not even get text
-      }
-      throw new Error(errorMessage);
-    }
-    return await res.json();
+    return await databases.listDocuments(DATABASE_ID, COLLECTIONS.courses);
   },
 
   async getCourse(id: string) {
-    const res = await fetch(`/api/courses/${id}`);
-    if (!res.ok) {
-      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
-      try {
-        const text = await res.text();
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage += ` - ${text.substring(0, 100)}...`;
-        }
-      } catch (e) {}
-      throw new Error(errorMessage);
-    }
-    return await res.json();
+    return await databases.getDocument(DATABASE_ID, COLLECTIONS.courses, id);
   },
 
   async getSummaries(courseId?: string) {
-    const url = courseId ? `/api/summaries?courseId=${courseId}` : '/api/summaries';
-    const res = await fetch(url);
-    if (!res.ok) {
-      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
-      try {
-        const text = await res.text();
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage += ` - ${text.substring(0, 100)}...`;
-        }
-      } catch (e) {}
-      throw new Error(errorMessage);
-    }
-    return await res.json();
+    const queries = [];
+    if (courseId) queries.push(Query.equal('courses', courseId));
+    return await databases.listDocuments(DATABASE_ID, COLLECTIONS.summaries, queries);
   },
 
   async getSummary(id: string) {
-    const res = await fetch(`/api/summaries/${id}`);
-    if (!res.ok) {
-      let errorMessage = `Server error: ${res.status} ${res.statusText}`;
-      try {
-        const text = await res.text();
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage += ` - ${text.substring(0, 100)}...`;
-        }
-      } catch (e) {}
-      throw new Error(errorMessage);
-    }
-    return await res.json();
+    return await databases.getDocument(DATABASE_ID, COLLECTIONS.summaries, id);
   },
 
   async getFileView(fileId: string) {
-    return `/api/storage/files/${fileId}/view`;
+    return storage.getFileView(BUCKET_ID, fileId).toString();
   },
 
   async getFileDownload(fileId: string) {
-    return `/api/storage/files/${fileId}/download`;
+    return storage.getFileDownload(BUCKET_ID, fileId).toString();
   },
 
   async getEnrollment(userId: string, courseId: string) {
-    const res = await fetch(`/api/enrollments?userId=${userId}&courseId=${courseId}`);
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.error || 'Failed to fetch enrollment');
-    }
-    const data = await res.json();
+    const queries = [
+        Query.equal('userID', userId),
+        Query.equal('courseID', courseId)
+    ];
+    const data = await databases.listDocuments(DATABASE_ID, COLLECTIONS.enrollments, queries);
     return data.documents[0] || null;
   },
 
   async getEnrollments(userId: string) {
-    const res = await fetch(`/api/enrollments?userId=${userId}`);
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.error || 'Failed to fetch enrollments');
-    }
-    return await res.json();
+    const queries = [Query.equal('userID', userId)];
+    return await databases.listDocuments(DATABASE_ID, COLLECTIONS.enrollments, queries);
   },
 
   async createEnrollment(userId: string, courseId: string) {
-    const res = await fetch('/api/enrollments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, courseId }),
-    });
-    if (!res.ok) throw new Error('Failed to create enrollment');
-    return await res.json();
+    return await databases.createDocument(
+        DATABASE_ID, 
+        COLLECTIONS.enrollments, 
+        ID.unique(), 
+        { userID: userId, courseID: courseId }
+    );
   },
 
   async deleteEnrollment(id: string) {
-    const res = await fetch(`/api/enrollments/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete enrollment');
-    return await res.json();
+    return await databases.deleteDocument(DATABASE_ID, COLLECTIONS.enrollments, id);
   },
 
   async getLectures(courseId: string) {
-    const res = await fetch(`/api/lectures?courseId=${courseId}`);
-    if (!res.ok) throw new Error('Failed to fetch lectures');
-    return await res.json();
+    const queries = [Query.equal('courses', courseId)];
+    return await databases.listDocuments(DATABASE_ID, COLLECTIONS.lectures, queries);
   },
 
   async getExamples(courseId: string) {
-    const res = await fetch(`/api/examples?courseId=${courseId}`);
-    if (!res.ok) throw new Error('Failed to fetch examples');
-    return await res.json();
+    const queries = [Query.equal('courses', courseId)];
+    return await databases.listDocuments(DATABASE_ID, COLLECTIONS.examples, queries);
   },
 
   async getLecture(id: string) {
-    const res = await fetch(`/api/lectures/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch lecture');
-    return await res.json();
+    return await databases.getDocument(DATABASE_ID, COLLECTIONS.lectures, id);
   },
 
   async getExample(id: string) {
-    const res = await fetch(`/api/examples/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch example');
-    return await res.json();
+    return await databases.getDocument(DATABASE_ID, COLLECTIONS.examples, id);
   },
 
   async getFile(fileId: string) {
-    const res = await fetch(`/api/storage/files/${fileId}`);
-    if (!res.ok) throw new Error('Failed to fetch file info');
-    return await res.json();
+    return await storage.getFile(BUCKET_ID, fileId);
   },
 
   async createSummary(id: string, data: any) {
-    const res = await fetch('/api/summaries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, data }),
-    });
-    if (!res.ok) throw new Error('Failed to create summary');
-    return await res.json();
+    return await databases.createDocument(DATABASE_ID, COLLECTIONS.summaries, id || ID.unique(), data);
   },
 
   async updateSummary(id: string, data: any) {
-    const res = await fetch(`/api/summaries/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update summary');
-    return await res.json();
+    return await databases.updateDocument(DATABASE_ID, COLLECTIONS.summaries, id, data);
   },
 
   async deleteSummary(id: string) {
-    const res = await fetch(`/api/summaries/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete summary');
-    return await res.json();
+    return await databases.deleteDocument(DATABASE_ID, COLLECTIONS.summaries, id);
   },
 
   async createFile(file: File, fileId?: string) {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (fileId) formData.append('fileId', fileId);
-
-    const res = await fetch('/api/storage/files', {
-      method: 'POST',
-      body: formData,
-    });
-    if (!res.ok) throw new Error('Failed to upload file');
-    return await res.json();
+    return await storage.createFile(BUCKET_ID, fileId || ID.unique(), file);
   },
 
   async deleteFile(fileId: string) {
-    const res = await fetch(`/api/storage/files/${fileId}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete file');
-    return await res.json();
+    return await storage.deleteFile(BUCKET_ID, fileId);
   },
 
   async createCourse(id: string, data: any) {
-    const res = await fetch('/api/courses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, data }),
-    });
-    if (!res.ok) throw new Error('Failed to create course');
-    return await res.json();
+    return await databases.createDocument(DATABASE_ID, COLLECTIONS.courses, id || ID.unique(), data);
   },
 
   async updateCourse(id: string, data: any) {
-    const res = await fetch(`/api/courses/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update course');
-    return await res.json();
+    return await databases.updateDocument(DATABASE_ID, COLLECTIONS.courses, id, data);
   },
 
   async deleteCourse(id: string) {
-    const res = await fetch(`/api/courses/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete course');
-    return await res.json();
+    return await databases.deleteDocument(DATABASE_ID, COLLECTIONS.courses, id);
   },
 
   async createLecture(id: string, data: any) {
-    const res = await fetch('/api/lectures', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, data }),
-    });
-    if (!res.ok) throw new Error('Failed to create lecture');
-    return await res.json();
+    return await databases.createDocument(DATABASE_ID, COLLECTIONS.lectures, id || ID.unique(), data);
   },
 
   async updateLecture(id: string, data: any) {
-    const res = await fetch(`/api/lectures/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update lecture');
-    return await res.json();
+    return await databases.updateDocument(DATABASE_ID, COLLECTIONS.lectures, id, data);
   },
 
   async deleteLecture(id: string) {
-    const res = await fetch(`/api/lectures/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete lecture');
-    return await res.json();
+    return await databases.deleteDocument(DATABASE_ID, COLLECTIONS.lectures, id);
   },
 
   async createExample(id: string, data: any) {
-    const res = await fetch('/api/examples', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, data }),
-    });
-    if (!res.ok) throw new Error('Failed to create example');
-    return await res.json();
+    return await databases.createDocument(DATABASE_ID, COLLECTIONS.examples, id || ID.unique(), data);
   },
 
   async updateExample(id: string, data: any) {
-    const res = await fetch(`/api/examples/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update example');
-    return await res.json();
+    return await databases.updateDocument(DATABASE_ID, COLLECTIONS.examples, id, data);
   },
 
   async deleteExample(id: string) {
-    const res = await fetch(`/api/examples/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to delete example');
-    return await res.json();
+    return await databases.deleteDocument(DATABASE_ID, COLLECTIONS.examples, id);
   },
 
   async login(email: string, pass: string) {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass }),
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Login failed');
-    }
-    return await res.json();
+    await account.createEmailPasswordSession(email, pass);
+    return await account.get();
   },
 
   async signup(email: string, pass: string, name?: string) {
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass, name }),
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Signup failed');
-    }
-    return await res.json();
+    await account.create(ID.unique(), email, pass, name);
+    return await this.login(email, pass);
   },
 
   async logout() {
-    const res = await fetch('/api/auth/logout', {
-      method: 'POST',
-    });
-    if (!res.ok) throw new Error('Logout failed');
-    return await res.json();
+    return await account.deleteSession('current');
   },
 
   async me() {
-    const res = await fetch('/api/auth/me');
-    if (!res.ok) return null;
-    return await res.json();
+    try {
+      return await account.get();
+    } catch (e) {
+      return null;
+    }
   },
 
   async updateName(name: string) {
-    const res = await fetch('/api/auth/name', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    if (!res.ok) throw new Error('Failed to update name');
-    return await res.json();
+    return await account.updateName(name);
   },
 
   async updateEmail(email: string, password: string) {
-    const res = await fetch('/api/auth/email', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!res.ok) throw new Error('Failed to update email');
-    return await res.json();
+    // Note: Appwrite requires a slightly different flow for email updates on client
+    // For now, let's just use the basic update
+    return await account.updateEmail(email, password);
   }
 };
