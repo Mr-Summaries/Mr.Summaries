@@ -110,6 +110,43 @@ describe('TikzRenderer.tsx – structural requirements', () => {
 });
 
 // --------------------------------------------------------------------------
+// Theme-aware style checks
+// --------------------------------------------------------------------------
+describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
+  const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
+
+  // Loading state must not use a hardcoded-dark-only background
+  assert(
+    !src.includes("bg-zinc-800 text-zinc-300"),
+    'loading state does not use hardcoded dark-only background (bg-zinc-800 text-zinc-300)',
+  );
+
+  // Loading state must have both light-mode AND dark-mode background in the same element
+  assert(
+    src.includes('bg-white dark:bg-zinc-100') || src.includes('bg-zinc-50 dark:bg-zinc-100'),
+    'loading state has light-mode background with a dark-mode variant (e.g. bg-white dark:bg-zinc-100)',
+  );
+
+  // tikzjax-container must carry its own light canvas background in the class string
+  assert(
+    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-100'),
+    'tikzjax-container has light canvas and dark-mode variant in its class string',
+  );
+
+  // Container should have a border for delineation in both modes, within the container class string
+  assert(
+    src.includes('border-zinc-200 dark:border-zinc-300') || src.includes('border-zinc-200 dark:border-zinc-400'),
+    'container class string has theme-aware border classes',
+  );
+
+  // Container should handle wide diagrams gracefully
+  assert(
+    src.includes('overflow-x-auto'),
+    'tikzjax-container uses overflow-x-auto for wide diagrams',
+  );
+});
+
+// --------------------------------------------------------------------------
 // public/tikzjax.js presence check
 // --------------------------------------------------------------------------
 describe('public/tikzjax.js – asset presence', () => {
