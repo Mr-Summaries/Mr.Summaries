@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTikz } from './tikzUtils';
 export { normalizeTikz } from './tikzUtils';
-import { useThemeStore } from '../store/useThemeStore';
 
 // ── Singleton library loader ──────────────────────────────────────────────────
 // tikzjax.js is served from /public/tikzjax.js via Vite's static asset handling.
@@ -70,6 +69,46 @@ export function scheduleTikzRendering(): void {
   });
 }
 
+// ── Background transparency helper ────────────────────────────────────────────
+/**
+ * After TikZJax renders, it may leave an inline background colour on the
+ * outer SVG element or insert a full-size white rectangle as the first child.
+ * This function strips those artefacts so the diagram sits on a transparent
+ * canvas, letting the surrounding UI theme show through naturally.
+ *
+ * Only SVG-level background artefacts are touched; coloured fills that are
+ * part of the actual diagram (blue circles, green rectangles, etc.) are left
+ * completely unchanged.
+ */
+export function makeSvgTransparent(container: HTMLElement): void {
+  container.querySelectorAll<SVGSVGElement>('svg').forEach((svg) => {
+    // Remove any inline background style on the <svg> element itself.
+    svg.style.background = '';
+    svg.style.backgroundColor = '';
+
+    // TikZJax sometimes inserts a <rect> as the very first child of the <svg>
+    // to act as a white page background (width/height matching the viewBox).
+    // Detect it by: being a <rect>, having no stroke, and having a fill that
+    // resolves to white / none-with-white-background.
+    const first = svg.querySelector<SVGElement>(':scope > rect:first-child');
+    if (first) {
+      const fill = first.getAttribute('fill') ?? first.style.fill ?? '';
+      const normalised = fill.trim().toLowerCase();
+      if (
+        normalised === 'white' ||
+        normalised === '#fff' ||
+        normalised === '#ffffff' ||
+        normalised === 'rgb(255,255,255)' ||
+        normalised === 'rgb(255, 255, 255)'
+      ) {
+        // Clear both the attribute and any inline style so neither overrides.
+        first.setAttribute('fill', 'transparent');
+        first.style.fill = '';
+      }
+    }
+  });
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 type RenderStatus = 'loading' | 'success' | 'error';
 
@@ -77,8 +116,6 @@ export const TikzRenderer = ({ children }: { children: string }) => {
   const [status,   setStatus]   = useState<RenderStatus>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  const { theme } = useThemeStore();
-  const isDark = theme === 'dark';
 
   useEffect(() => {
     let alive = true;
@@ -97,8 +134,13 @@ export const TikzRenderer = ({ children }: { children: string }) => {
       if (!alive) return;
       obs?.disconnect(); obs = null;
       if (timer) { clearTimeout(timer); timer = null; }
-      if (ok) setStatus('success');
-      else    { setStatus('error'); setErrorMsg(msg); }
+      if (ok) {
+        makeSvgTransparent(el);
+        setStatus('success');
+      } else {
+        setStatus('error');
+        setErrorMsg(msg);
+      }
     }
 
     async function go() {
@@ -157,13 +199,11 @@ export const TikzRenderer = ({ children }: { children: string }) => {
       )}
       {/* Container is always mounted so the MutationObserver has a stable ref;
           hidden while loading/error to avoid flash of un-styled content.
-          In dark mode a CSS invert filter is applied so black strokes/text
-          become white and the white SVG background becomes dark, maintaining
-          contrast without requiring any changes to the authored TikZ source. */}
+          Background is kept transparent so the surrounding UI theme shows
+          through naturally in both light and dark mode. */}
       <div
         ref={containerRef}
-        style={isDark ? { filter: 'invert(1) hue-rotate(180deg)' } : undefined}
-        className={`tikzjax-container flex justify-center overflow-x-auto bg-white rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
+        className={`tikzjax-container flex justify-center overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
       />
     </div>
   );
