@@ -52,7 +52,11 @@ const Home = () => {
       }
     } catch (error: any) {
       console.error('Error fetching courses', error);
-      setErrorMsg(error.message || 'Failed to fetch');
+      if (error.message === 'Failed to fetch') {
+        setErrorMsg('שגיאת רשת (CORS). עליך להוסיף את כתובת האתר הנוכחית (App URL) ל-Web Platforms בפרויקט Appwrite שלך: כנס ל-Appwrite -> הפרויקט שלך -> Add Platform -> Web App -> הכנס את הכתובת ללא לוכסן בסוף.');
+      } else {
+        setErrorMsg(error.message || 'Failed to fetch');
+      }
     }
   }, [user]);
 

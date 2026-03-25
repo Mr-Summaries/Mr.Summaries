@@ -48,9 +48,13 @@ const Lecture = () => {
               setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error('Error fetching lecture content:', e);
-          setContent('שגיאה בטעינת התוכן מהשרת.');
+          if (e.message === 'Failed to fetch') {
+            setContent('שגיאת רשת (CORS). עליך להוסיף את כתובת האתר הנוכחית (App URL) ל-Web Platforms בפרויקט Appwrite שלך.');
+          } else {
+            setContent('שגיאה בטעינת התוכן מהשרת.');
+          }
         }
       } else {
         setContent('לא נמצא תוכן להרצאה זו.');

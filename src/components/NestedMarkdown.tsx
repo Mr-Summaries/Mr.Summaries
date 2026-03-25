@@ -83,7 +83,7 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
       <div className={proseClasses}>
         <ReactMarkdown 
           remarkPlugins={[remarkGfm, remarkMath]} 
-          rehypePlugins={[rehypeRaw, rehypeKatex]}
+          rehypePlugins={[rehypeRaw, [rehypeKatex, { strict: false, macros: { "\\set": "\\left\\{ #1 \\right\\}" } }]]}
           components={{
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || '');

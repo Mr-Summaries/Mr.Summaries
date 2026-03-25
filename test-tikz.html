@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+    <script src="https://tikzjax-demo.think.somethingorotherwhatever.com/tikzjax.js"></script>
+</head>
+<body>
+    <div id="container"></div>
+    <script>
+        window.onload = () => {
+            const script = document.createElement('script');
+            script.type = 'text/tikz';
+            script.textContent = `\\begin{document}
+	\\begin{tikzpicture}
+		\\fill[blue!30] (0,0) circle (1.5cm);
+		\\fill[blue!30] (2,0) circle (1.5cm);
+		\\draw (0,0) circle (1.5cm) node[left] {$A$};
+		\\draw (2,0) circle (1.5cm) node[right] {$B$};
+	\\end{tikzpicture}
+\\end{document}`;
+            document.getElementById('container').appendChild(script);
+            window.process_tikz(script);
+        };
+    </script>
+</body>
+</html>
