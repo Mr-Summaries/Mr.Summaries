@@ -23,7 +23,6 @@
     "express-session": "^1.19.0",
     "katex": "^0.16.40",
     "lucide-react": "^0.546.0",
-    "mdast-util-mark": "^1.0.0",
     "mermaid": "^11.13.0",
     "micromark-extension-mark": "^1.0.2",
     "motion": "^12.23.24",
