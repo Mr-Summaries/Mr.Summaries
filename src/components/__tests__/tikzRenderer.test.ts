@@ -173,7 +173,7 @@ describe('TikzRenderer.tsx - dark mode CSS invert filter', () => {
   // Filter must be conditioned on dark mode (not always applied)
   assert(
     src.includes('isDark') && (
-      src.includes("isDark ?") || src.includes("isDark&&") || src.includes("isDark ?")
+      src.includes("isDark ?") || src.includes("isDark&&") || src.includes("isDark :")
     ),
     'CSS filter is conditionally applied based on isDark flag (not always on)',
   );
