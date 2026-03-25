@@ -121,22 +121,22 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
     'loading state does not use hardcoded dark-only background (bg-zinc-800 text-zinc-300)',
   );
 
-  // Loading state must have both light-mode AND dark-mode background in the same element
+  // Loading state must have a light-mode background and a dark-mode variant that is dark (zinc-800+)
   assert(
-    src.includes('bg-white dark:bg-zinc-100') || src.includes('bg-zinc-50 dark:bg-zinc-100'),
-    'loading state has light-mode background with a dark-mode variant (e.g. bg-white dark:bg-zinc-100)',
+    src.includes('bg-white dark:bg-zinc-800') || src.includes('bg-zinc-50 dark:bg-zinc-800'),
+    'loading state has white light-mode background and proper dark-mode variant (dark:bg-zinc-800)',
   );
 
-  // tikzjax-container must carry its own light canvas background in the class string
+  // tikzjax-container must carry a white canvas in light mode and a dark canvas in dark mode
   assert(
-    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-100'),
-    'tikzjax-container has light canvas and dark-mode variant in its class string',
+    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800'),
+    'tikzjax-container has white light-mode canvas and dark dark-mode canvas in its class string',
   );
 
-  // Container should have a border for delineation in both modes, within the container class string
+  // Container border should be subtle in light mode and dark-appropriate in dark mode
   assert(
-    src.includes('border-zinc-200 dark:border-zinc-300') || src.includes('border-zinc-200 dark:border-zinc-400'),
-    'container class string has theme-aware border classes',
+    src.includes('border-zinc-200 dark:border-zinc-700') || src.includes('border-zinc-200 dark:border-zinc-600'),
+    'container class string has theme-aware border classes (dark border for dark mode)',
   );
 
   // Container should handle wide diagrams gracefully
@@ -172,9 +172,98 @@ describe('index.html – script tag checks', () => {
 });
 
 // --------------------------------------------------------------------------
-// Summary
+// remarkMark plugin – ==...== highlight syntax
 // --------------------------------------------------------------------------
-console.log(`\n${'─'.repeat(50)}`);
-console.log(`Results: ${passed} passed, ${failed} failed`);
-if (failed > 0) process.exit(1);
+// Dynamic import so the ESM module resolves correctly under tsx.
+async function runRemarkMarkTests() {
+  const { unified } = await import('unified');
+  const { default: remarkParse } = await import('remark-parse');
+  const { default: remarkMath } = await import('remark-math');
+  const { default: remarkGfm } = await import('remark-gfm');
+  const { default: remarkMark } = await import('../remarkMark.js');
+
+  function findNodes(node: any, type: string, results: any[] = []): any[] {
+    if (node.type === type) results.push(node);
+    if (node.children) node.children.forEach((c: any) => findNodes(c, type, results));
+    return results;
+  }
+
+  function parse(markdown: string) {
+    return unified().use(remarkParse).use(remarkGfm).use(remarkMath).use(remarkMark).parse(markdown);
+  }
+
+  describe('remarkMark – This is ==highlight== text.', () => {
+    const marks = findNodes(parse('This is ==highlight== text.'), 'mark');
+    assert(marks.length === 1, 'one mark node');
+    assert(marks[0]?.children?.[0]?.value === 'highlight', 'mark contains correct text');
+  });
+
+  describe('remarkMark – ==one== and ==two==', () => {
+    const marks = findNodes(parse('==one== and ==two=='), 'mark');
+    assert(marks.length === 2, 'two mark nodes');
+    assert(marks[0]?.children?.[0]?.value === 'one', 'first mark is "one"');
+    assert(marks[1]?.children?.[0]?.value === 'two', 'second mark is "two"');
+  });
+
+  describe('remarkMark – no ==...== produces no mark nodes', () => {
+    const marks = findNodes(parse('regular text without highlights'), 'mark');
+    assert(marks.length === 0, 'no mark nodes for plain text');
+  });
+
+  describe('remarkMark – **==bold highlight==** (emphasis + mark)', () => {
+    const tree = parse('**==bold highlight==**');
+    const marks = findNodes(tree, 'mark');
+    const strongs = findNodes(tree, 'strong');
+    assert(marks.length === 1, 'one mark node');
+    assert(strongs.length === 1, 'one strong node');
+    // mark is nested inside strong
+    assert(strongs[0]?.children?.[0]?.type === 'mark', 'mark is child of strong');
+    assert(marks[0]?.children?.[0]?.value === 'bold highlight', 'mark text is "bold highlight"');
+  });
+
+  describe('remarkMark – math inside highlight ==text $U$ more==', () => {
+    // The micromark extension handles this: inlineMath is a child of mark
+    const marks = findNodes(parse('==text $U$ more=='), 'mark');
+    assert(marks.length === 1, 'one mark node even with inline math inside');
+    const childTypes = marks[0]?.children?.map((c: any) => c.type) ?? [];
+    assert(childTypes.includes('inlineMath'), 'mark contains inlineMath child');
+  });
+
+  describe('remarkMark – Hebrew text with math ==נדגיש כי $U$ הוא==', () => {
+    const marks = findNodes(parse('==נדגיש כי $U$ הוא=='), 'mark');
+    assert(marks.length === 1, 'one mark node for Hebrew text with math');
+    const childTypes = marks[0]?.children?.map((c: any) => c.type) ?? [];
+    assert(childTypes.includes('text'), 'mark contains text child');
+    assert(childTypes.includes('inlineMath'), 'mark contains inlineMath child');
+  });
+
+  describe('remarkMark – does not break regular markdown features', () => {
+    const tree = parse('**bold** and *italic* and `code` and ==mark==');
+    assert(findNodes(tree, 'strong').length === 1, 'strong still works');
+    assert(findNodes(tree, 'emphasis').length === 1, 'emphasis still works');
+    assert(findNodes(tree, 'inlineCode').length === 1, 'inlineCode still works');
+    assert(findNodes(tree, 'mark').length === 1, 'mark works alongside other features');
+  });
+
+  describe('remarkMark – source file exports markHandler', () => {
+    const src = readFileSync(resolve(__dirname, '../remarkMark.ts'), 'utf8');
+    assert(src.includes('export function markHandler'), 'markHandler is exported from remarkMark.ts');
+    assert(src.includes("tagName: 'mark'"), 'markHandler uses <mark> tag');
+  });
+}
+
+// Run async tests and defer summary
+const asyncTestsDone = runRemarkMarkTests().catch((e) => {
+  console.error('\nremarkMark async tests failed to load:', e);
+  failed++;
+});
+
+// --------------------------------------------------------------------------
+// Summary (after async tests)
+// --------------------------------------------------------------------------
+asyncTestsDone.then(() => {
+  console.log(`\n${'─'.repeat(50)}`);
+  console.log(`Results: ${passed} passed, ${failed} failed`);
+  if (failed > 0) process.exit(1);
+});
 

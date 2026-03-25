@@ -24,6 +24,7 @@
     "katex": "^0.16.40",
     "lucide-react": "^0.546.0",
     "mermaid": "^11.13.0",
+    "micromark-extension-mark": "^1.0.2",
     "motion": "^12.23.24",
     "multer": "^2.1.1",
     "node-appwrite": "^14.1.0",

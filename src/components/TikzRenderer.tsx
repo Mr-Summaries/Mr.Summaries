@@ -142,7 +142,7 @@ export const TikzRenderer = ({ children }: { children: string }) => {
   return (
     <div className="tikzjax-wrapper my-4">
       {status === 'loading' && (
-        <div className="p-4 bg-white dark:bg-zinc-100 text-zinc-500 rounded-lg border border-zinc-200 dark:border-zinc-300 text-sm">
+        <div className="p-4 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm">
           Rendering TikZ diagram…
         </div>
       )}
@@ -156,7 +156,7 @@ export const TikzRenderer = ({ children }: { children: string }) => {
           hidden while loading/error to avoid flash of un-styled content. */}
       <div
         ref={containerRef}
-        className={`tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-100 rounded-lg border border-zinc-200 dark:border-zinc-300 p-4${status !== 'success' ? ' hidden' : ''}`}
+        className={`tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
       />
     </div>
   );
