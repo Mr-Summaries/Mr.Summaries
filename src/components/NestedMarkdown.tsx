@@ -84,7 +84,7 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
       <div className={proseClasses}>
         <ReactMarkdown 
           remarkPlugins={[remarkGfm, remarkMath, remarkMark]} 
-          rehypePlugins={[rehypeRaw, [rehypeKatex, { strict: false, macros: { "\\set": "\\left\\{ #1 \\right\\}" } }]]}
+          rehypePlugins={[rehypeRaw, [rehypeKatex, { strict: false }]]}
           remarkRehypeOptions={{ handlers: { mark: markHandler } as Record<string, unknown> }}
           components={{
             pre({ children, node, ...props }: any) {

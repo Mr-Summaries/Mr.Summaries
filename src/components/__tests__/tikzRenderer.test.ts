@@ -459,11 +459,103 @@ async function runRemarkMarkTests() {
   });
 }
 
+// --------------------------------------------------------------------------
+// Math rendering – no spurious \set injection (regression for KaTeX macros)
+// --------------------------------------------------------------------------
+async function runMathRenderingTests() {
+  const { unified } = await import('unified');
+  const { default: remarkParse } = await import('remark-parse');
+  const { default: remarkMath } = await import('remark-math');
+  const { default: remarkGfm } = await import('remark-gfm');
+  const { default: remarkRehype } = await import('remark-rehype');
+  const { default: rehypeKatex } = await import('rehype-katex');
+  const { default: rehypeStringify } = await import('rehype-stringify');
+  const { default: rehypeRaw } = await import('rehype-raw');
+
+  /** Run the exact same pipeline as NestedMarkdown (no custom macros). */
+  async function renderMd(markdown: string): Promise<string> {
+    const file = await unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkMath)
+      .use(remarkRehype)
+      .use(rehypeRaw)
+      .use(rehypeKatex, { strict: false })
+      .use(rehypeStringify)
+      .process(markdown);
+    return String(file);
+  }
+
+  /** Extract only visible rendered text (strip HTML tags, keep annotation content separate). */
+  function visibleSpans(html: string): string {
+    // Remove annotation elements (contain raw LaTeX source – expected to have \set if authored)
+    const noAnnotation = html.replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/g, '');
+    return noAnnotation.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // ── Test 1: user's complement expression must not show \set in rendered spans ──
+  describe('math – complement expression does not inject \\set', async () => {
+    const md = 'כך: $A^{\\complement}=\\left\\lbrace x\\mid x\\in U\\land x\\notin A\\rbrace\\right.$.';
+    const html = await renderMd(md);
+    const visible = visibleSpans(html);
+    assert(!visible.includes('\\set'), 'rendered text does not contain literal \\set');
+    assert(!html.includes('katex-error'), 'no KaTeX error element in output');
+  });
+
+  // ── Test 2: NestedMarkdown source must not define \set in macros ──
+  describe('NestedMarkdown – \\set macro removed from rehypeKatex config', () => {
+    const src = readFileSync(resolve(__dirname, '../NestedMarkdown.tsx'), 'utf8');
+    assert(!src.includes('"\\\\set"') && !src.includes('"\\set"'),
+      'NestedMarkdown.tsx no longer defines a \\set KaTeX macro');
+  });
+
+  // ── Test 3: basic inline math still renders ──
+  describe('math – basic inline expression $x^2$ renders without error', async () => {
+    const html = await renderMd('inline $x^2$ math');
+    assert(!html.includes('katex-error'), 'no katex-error for simple x^2');
+    assert(html.includes('katex'), 'KaTeX output present');
+  });
+
+  // ── Test 4: ==highlight== still works alongside math ──
+  describe('math – ==highlight== + math co-exist', async () => {
+    const { default: remarkMark } = await import('../remarkMark.js');
+    const { markHandler } = await import('../remarkMark.js');
+    const { default: remarkRehype2 } = await import('remark-rehype');
+    const file = await unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkMath)
+      .use(remarkMark)
+      .use(remarkRehype2, { handlers: { mark: markHandler } as Record<string, unknown> })
+      .use(rehypeRaw)
+      .use(rehypeKatex, { strict: false })
+      .use(rehypeStringify)
+      .process('==marked== and $x^2$');
+    const html = String(file);
+    assert(html.includes('<mark>'), '==...== produces <mark> tag');
+    assert(!html.includes('katex-error'), 'no katex-error with highlight+math');
+  });
+
+  // ── Test 5: TikZ code block passes through without being mangled ──
+  describe('math – tikz fenced block passes through markdown as code[language-tikz]', async () => {
+    const md = '```tikz\n\\begin{tikzpicture}\n\\draw (0,0) circle (1);\n\\end{tikzpicture}\n```';
+    const html = await renderMd(md);
+    assert(html.includes('language-tikz'), 'tikz fenced code block has language-tikz class');
+    assert(!html.includes('katex-error'), 'tikz block does not produce katex-error');
+  });
+}
+
 // Run async tests and defer summary
-const asyncTestsDone = runRemarkMarkTests().catch((e) => {
-  console.error('\nremarkMark async tests failed to load:', e);
-  failed++;
-});
+const asyncTestsDone = Promise.all([
+  runRemarkMarkTests().catch((e) => {
+    console.error('\nremarkMark async tests failed to load:', e);
+    failed++;
+  }),
+  runMathRenderingTests().catch((e) => {
+    console.error('\nmath rendering async tests failed to load:', e);
+    failed++;
+  }),
+]);
 
 // --------------------------------------------------------------------------
 // Summary (after async tests)
