@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTikz } from './tikzUtils';
+import { useThemeStore } from '../store/useThemeStore';
 export { normalizeTikz } from './tikzUtils';
 
 // ── Singleton library loader ──────────────────────────────────────────────────
@@ -116,6 +117,8 @@ export const TikzRenderer = ({ children }: { children: string }) => {
   const [status,   setStatus]   = useState<RenderStatus>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const theme = useThemeStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     let alive = true;
@@ -204,6 +207,7 @@ export const TikzRenderer = ({ children }: { children: string }) => {
       <div
         ref={containerRef}
         className={`tikzjax-container flex justify-center overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
+        style={isDark ? { filter: 'invert(1) hue-rotate(180deg)' } : undefined}
       />
     </div>
   );

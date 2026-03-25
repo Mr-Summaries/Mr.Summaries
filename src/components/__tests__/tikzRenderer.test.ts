@@ -128,8 +128,10 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
   );
 
   // tikzjax-container must NOT have a forced white background (background is transparent)
+  const containerClassMatch2 = src.match(/tikzjax-container[^`'"<>]*/);
+  const containerClasses2 = containerClassMatch2 ? containerClassMatch2[0] : '';
   assert(
-    !src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white'),
+    !containerClasses2.includes('bg-white'),
     'tikzjax-container does not force a white background (transparent)',
   );
 
@@ -147,25 +149,40 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
 });
 
 // --------------------------------------------------------------------------
-// Transparent background helper checks
+// Dark-mode inversion and transparent background checks
 // --------------------------------------------------------------------------
-describe('TikzRenderer.tsx - transparent background (no invert filter)', () => {
+describe('TikzRenderer.tsx - dark mode inversion and transparent background', () => {
   const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
 
-  // Must NOT use the old invert(1) hue-rotate approach – transparent bg replaces it
+  // Dark mode inversion MUST use the CSS filter
   assert(
-    !src.includes('invert(1)'),
-    'does not apply invert(1) CSS filter (transparent background replaces it)',
+    src.includes('invert(1)'),
+    'applies invert(1) CSS filter for dark mode readability',
   );
   assert(
-    !src.includes('hue-rotate(180deg)'),
-    'does not apply hue-rotate(180deg) CSS filter',
+    src.includes('hue-rotate(180deg)'),
+    'applies hue-rotate(180deg) to preserve perceived colors after inversion',
   );
 
-  // Must NOT conditionally set inline styles based on isDark for the container
+  // The filter must be gated on isDark (driven by theme state, not always-on)
   assert(
-    !src.includes('style={isDark'),
-    'container does not set inline style based on isDark',
+    src.includes('isDark'),
+    'uses isDark to gate the inversion filter',
+  );
+
+  // Theme store must be imported to detect dark mode
+  assert(
+    src.includes('useThemeStore'),
+    'imports useThemeStore to detect current theme',
+  );
+
+  // tikzjax-container must NOT have a forced white background (background is transparent)
+  // Extract the container class string and check bg-white is absent from it specifically
+  const containerClassMatch = src.match(/tikzjax-container[^`'"<>]*/);
+  const containerClasses = containerClassMatch ? containerClassMatch[0] : '';
+  assert(
+    !containerClasses.includes('bg-white'),
+    'tikzjax-container does not force a white background (transparent)',
   );
 
   // makeSvgTransparent must be exported so it is testable
