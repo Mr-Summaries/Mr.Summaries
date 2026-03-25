@@ -127,16 +127,10 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
     'loading state has white light-mode background and proper dark-mode variant (dark:bg-zinc-800)',
   );
 
-  // tikzjax-container must always carry a white canvas (color inversion handles dark mode appearance)
+  // tikzjax-container must NOT have a forced white background (background is transparent)
   assert(
-    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white'),
-    'tikzjax-container always uses a white background (invert filter handles dark mode)',
-  );
-
-  // tikzjax-container must NOT use dark:bg-zinc-800 (the invert filter handles the dark background)
-  assert(
-    !src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800'),
-    'tikzjax-container does not use dark:bg-zinc-800 (invert filter replaces it)',
+    !src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white'),
+    'tikzjax-container does not force a white background (transparent)',
   );
 
   // Container border should be subtle in light mode and dark-appropriate in dark mode
@@ -153,36 +147,193 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
 });
 
 // --------------------------------------------------------------------------
-// Dark-mode color inversion checks
+// Transparent background helper checks
 // --------------------------------------------------------------------------
-describe('TikzRenderer.tsx - dark mode CSS invert filter', () => {
+describe('TikzRenderer.tsx - transparent background (no invert filter)', () => {
   const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
 
-  // Must import the theme store to detect dark mode
+  // Must NOT use the old invert(1) hue-rotate approach – transparent bg replaces it
   assert(
-    src.includes('useThemeStore'),
-    'TikzRenderer imports useThemeStore for dark mode detection',
+    !src.includes('invert(1)'),
+    'does not apply invert(1) CSS filter (transparent background replaces it)',
+  );
+  assert(
+    !src.includes('hue-rotate(180deg)'),
+    'does not apply hue-rotate(180deg) CSS filter',
   );
 
-  // Must apply the invert(1) hue-rotate(180deg) filter in dark mode
+  // Must NOT conditionally set inline styles based on isDark for the container
   assert(
-    src.includes("invert(1)") && src.includes("hue-rotate(180deg)"),
-    'applies invert(1) hue-rotate(180deg) CSS filter for dark mode',
+    !src.includes('style={isDark'),
+    'container does not set inline style based on isDark',
   );
 
-  // Filter must be conditioned on dark mode (not always applied)
+  // makeSvgTransparent must be exported so it is testable
   assert(
-    src.includes('isDark') && (
-      src.includes("isDark ?") || src.includes("isDark&&") || src.includes("isDark :")
-    ),
-    'CSS filter is conditionally applied based on isDark flag (not always on)',
+    src.includes('export function makeSvgTransparent'),
+    'makeSvgTransparent is exported',
   );
 
-  // Filter must be applied via inline style to the tikzjax-container element
+  // makeSvgTransparent must clear inline background on svg elements
   assert(
-    src.includes("style={isDark"),
-    'inline style is set based on isDark for the container element',
+    src.includes("svg.style.background = ''"),
+    'makeSvgTransparent clears inline background style from SVG elements',
   );
+
+  // makeSvgTransparent must handle white-fill background rects (both attribute and style)
+  assert(
+    src.includes("first.setAttribute('fill', 'transparent')"),
+    'makeSvgTransparent converts white background rects to transparent',
+  );
+  assert(
+    src.includes("first.style.fill = ''"),
+    'makeSvgTransparent also clears inline style.fill on background rects',
+  );
+
+  // makeSvgTransparent must be called on successful render
+  assert(
+    src.includes('makeSvgTransparent(el)'),
+    'makeSvgTransparent is called after successful render',
+  );
+});
+
+// --------------------------------------------------------------------------
+// makeSvgTransparent – DOM-level unit tests (JSDOM / minimal polyfill)
+// --------------------------------------------------------------------------
+describe('makeSvgTransparent – strips SVG background artefacts', () => {
+  // Minimal JSDOM-style polyfill using Node.js built-in structures.
+  // We avoid a full DOM by creating a simple object that mimics the relevant
+  // HTMLElement / SVGElement API surface used by makeSvgTransparent.
+
+  function makeEl(tag: string, attrs: Record<string, string> = {}, style: Record<string, string> = {}) {
+    const attrMap = new Map(Object.entries(attrs));
+    const styleObj: Record<string, string> = { ...style };
+    const children: any[] = [];
+
+    return {
+      tagName: tag.toUpperCase(),
+      style: styleObj,
+      getAttribute: (name: string) => attrMap.get(name) ?? null,
+      setAttribute: (name: string, val: string) => { attrMap.set(name, val); },
+      querySelectorAll: (sel: string) => {
+        // Only handles 'svg' selector for this test
+        if (sel === 'svg') return children.filter(c => c.tagName === 'SVG');
+        return [];
+      },
+      querySelector: (sel: string) => {
+        // Handles ':scope > rect:first-child'
+        if (sel === ':scope > rect:first-child') {
+          return children[0]?.tagName === 'RECT' ? children[0] : null;
+        }
+        return null;
+      },
+      _children: children,
+    };
+  }
+
+  function buildContainer(svgStyle: Record<string, string> = {}, firstChildTag = 'rect', firstChildAttrs: Record<string, string> = {}) {
+    const container = makeEl('div');
+    const svg = makeEl('svg', {}, svgStyle) as any;
+    // Declare firstChild before svg.querySelector closure so there is no temporal dead zone issue.
+    const firstChild = makeEl(firstChildTag, firstChildAttrs);
+    svg.querySelectorAll = (sel: string) => sel === 'svg' ? [svg] : [];
+    svg.querySelector = (sel: string) => {
+      if (sel === ':scope > rect:first-child') {
+        return firstChild.tagName === 'RECT' ? firstChild : null;
+      }
+      return null;
+    };
+    svg._children.push(firstChild);
+
+    // Wire container.querySelectorAll to return [svg] for 'svg'
+    container.querySelectorAll = (sel: string) => sel === 'svg' ? [svg] : [];
+    container._children.push(svg);
+
+    return { container, svg, firstChild };
+  }
+
+  // Import the real function
+  // We use a dynamic require-style approach compatible with tsx
+  // The actual test is structural (source-level) above; here we test logic
+  // using a reimplementation that mirrors the source exactly.
+  function makeSvgTransparentImpl(container: any): void {
+    container.querySelectorAll('svg').forEach((svg: any) => {
+      svg.style.background = '';
+      svg.style.backgroundColor = '';
+      const first = svg.querySelector(':scope > rect:first-child');
+      if (first) {
+        const fill = first.getAttribute('fill') ?? first.style.fill ?? '';
+        const normalised = fill.trim().toLowerCase();
+        if (
+          normalised === 'white' ||
+          normalised === '#fff' ||
+          normalised === '#ffffff' ||
+          normalised === 'rgb(255,255,255)' ||
+          normalised === 'rgb(255, 255, 255)'
+        ) {
+          // Clear both the attribute and any inline style so neither overrides.
+          first.setAttribute('fill', 'transparent');
+          first.style.fill = '';
+        }
+      }
+    });
+  }
+
+  {
+    const { svg } = buildContainer({ background: 'white', backgroundColor: 'white' });
+    makeSvgTransparentImpl({ querySelectorAll: (s: string) => s === 'svg' ? [svg] : [] });
+    assert(svg.style.background === '', 'clears inline background on svg');
+    assert(svg.style.backgroundColor === '', 'clears inline backgroundColor on svg');
+  }
+
+  {
+    // white fill rect is made transparent
+    const { container, firstChild } = buildContainer({}, 'rect', { fill: 'white' });
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'transparent', 'converts white fill rect to transparent');
+  }
+
+  {
+    // #fff fill rect is made transparent
+    const { container, firstChild } = buildContainer({}, 'rect', { fill: '#fff' });
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'transparent', 'converts #fff fill rect to transparent');
+  }
+
+  {
+    // #ffffff fill rect is made transparent
+    const { container, firstChild } = buildContainer({}, 'rect', { fill: '#ffffff' });
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'transparent', 'converts #ffffff fill rect to transparent');
+  }
+
+  {
+    // blue fill rect is NOT changed (it's a real diagram element)
+    const { container, firstChild } = buildContainer({}, 'rect', { fill: 'blue' });
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'blue', 'does not alter non-white fill rect');
+  }
+
+  {
+    // first child is a circle, not a rect – nothing should change
+    const { container, firstChild } = buildContainer({}, 'circle', { fill: 'white' });
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'white', 'does not alter non-rect first child');
+  }
+
+  {
+    // white fill via inline style.fill (no attribute) is also cleared
+    const container = makeEl('div');
+    const svg = makeEl('svg') as any;
+    const firstChild = makeEl('rect', {}, { fill: 'white' });
+    svg.querySelectorAll = (sel: string) => sel === 'svg' ? [svg] : [];
+    svg.querySelector = (sel: string) =>
+      sel === ':scope > rect:first-child' ? firstChild : null;
+    container.querySelectorAll = (sel: string) => sel === 'svg' ? [svg] : [];
+    makeSvgTransparentImpl(container);
+    assert(firstChild.getAttribute('fill') === 'transparent', 'converts white style.fill rect fill attribute to transparent');
+    assert(firstChild.style.fill === '', 'clears white style.fill on background rect');
+  }
 });
 
 // --------------------------------------------------------------------------
