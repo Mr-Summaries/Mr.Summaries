@@ -127,10 +127,16 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
     'loading state has white light-mode background and proper dark-mode variant (dark:bg-zinc-800)',
   );
 
-  // tikzjax-container must carry a white canvas in light mode and a dark canvas in dark mode
+  // tikzjax-container must always carry a white canvas (color inversion handles dark mode appearance)
   assert(
-    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800'),
-    'tikzjax-container has white light-mode canvas and dark dark-mode canvas in its class string',
+    src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white'),
+    'tikzjax-container always uses a white background (invert filter handles dark mode)',
+  );
+
+  // tikzjax-container must NOT use dark:bg-zinc-800 (the invert filter handles the dark background)
+  assert(
+    !src.includes('tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800'),
+    'tikzjax-container does not use dark:bg-zinc-800 (invert filter replaces it)',
   );
 
   // Container border should be subtle in light mode and dark-appropriate in dark mode
@@ -143,6 +149,39 @@ describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
   assert(
     src.includes('overflow-x-auto'),
     'tikzjax-container uses overflow-x-auto for wide diagrams',
+  );
+});
+
+// --------------------------------------------------------------------------
+// Dark-mode color inversion checks
+// --------------------------------------------------------------------------
+describe('TikzRenderer.tsx - dark mode CSS invert filter', () => {
+  const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
+
+  // Must import the theme store to detect dark mode
+  assert(
+    src.includes('useThemeStore'),
+    'TikzRenderer imports useThemeStore for dark mode detection',
+  );
+
+  // Must apply the invert(1) hue-rotate(180deg) filter in dark mode
+  assert(
+    src.includes("invert(1)") && src.includes("hue-rotate(180deg)"),
+    'applies invert(1) hue-rotate(180deg) CSS filter for dark mode',
+  );
+
+  // Filter must be conditioned on dark mode (not always applied)
+  assert(
+    src.includes('isDark') && (
+      src.includes("isDark ?") || src.includes("isDark&&") || src.includes("isDark :")
+    ),
+    'CSS filter is conditionally applied based on isDark flag (not always on)',
+  );
+
+  // Filter must be applied via inline style to the tikzjax-container element
+  assert(
+    src.includes("style={isDark"),
+    'inline style is set based on isDark for the container element',
   );
 });
 

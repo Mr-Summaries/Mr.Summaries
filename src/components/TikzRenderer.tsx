@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTikz } from './tikzUtils';
 export { normalizeTikz } from './tikzUtils';
+import { useThemeStore } from '../store/useThemeStore';
 
 // ── Singleton library loader ──────────────────────────────────────────────────
 // tikzjax.js is served from /public/tikzjax.js via Vite's static asset handling.
@@ -76,6 +77,8 @@ export const TikzRenderer = ({ children }: { children: string }) => {
   const [status,   setStatus]   = useState<RenderStatus>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     let alive = true;
@@ -153,10 +156,14 @@ export const TikzRenderer = ({ children }: { children: string }) => {
         </div>
       )}
       {/* Container is always mounted so the MutationObserver has a stable ref;
-          hidden while loading/error to avoid flash of un-styled content. */}
+          hidden while loading/error to avoid flash of un-styled content.
+          In dark mode a CSS invert filter is applied so black strokes/text
+          become white and the white SVG background becomes dark, maintaining
+          contrast without requiring any changes to the authored TikZ source. */}
       <div
         ref={containerRef}
-        className={`tikzjax-container flex justify-center overflow-x-auto bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
+        style={isDark ? { filter: 'invert(1) hue-rotate(180deg)' } : undefined}
+        className={`tikzjax-container flex justify-center overflow-x-auto bg-white rounded-lg border border-zinc-200 dark:border-zinc-700 p-4${status !== 'success' ? ' hidden' : ''}`}
       />
     </div>
   );
