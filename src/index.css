@@ -4,6 +4,17 @@
   direction: ltr;
   unicode-bidi: embed;
 }
+
+/* Prevent RTL text direction from corrupting TikZ diagram labels.
+   The page may be in an RTL context (e.g. Hebrew content), and although the
+   tikzjax-wrapper already sets dir="ltr", SVG <text> nodes can still be
+   reordered by the Unicode Bidi algorithm.  Forcing direction:ltr on the
+   SVG root and all its text elements mirrors the same fix used for KaTeX. */
+.tikzjax-container svg,
+.tikzjax-container svg text {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
 @plugin "@tailwindcss/typography";
 
 @variant dark (&:where(.dark, .dark *));

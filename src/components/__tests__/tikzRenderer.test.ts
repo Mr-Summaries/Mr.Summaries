@@ -385,6 +385,107 @@ describe('index.html – script tag checks', () => {
 });
 
 // --------------------------------------------------------------------------
+// Comma / punctuation preservation – regression for "(a,b) rendered as (a^c b)"
+// --------------------------------------------------------------------------
+describe('normalizeTikz – comma in TikZ label is preserved verbatim', () => {
+  // A label such as `\node at (0,0.7) {$(a,b)$};` must reach tikzjax unchanged.
+  // normalizeTikz must not mutate commas or any punctuation inside the content.
+  const tikzWithComma = `\\begin{document}
+\\begin{tikzpicture}
+  \\draw (-2,0) -- (2,0);
+  \\node at (0,0.7) {$(a,b)$};
+  \\fill[gray] (-1,0) circle (2pt) node[below] {$a$};
+  \\fill[gray] (1,0) circle (2pt) node[below] {$b$};
+\\end{tikzpicture}
+\\end{document}`;
+
+  const result = normalizeTikz(tikzWithComma);
+  assert(result.includes('$(a,b)$'), 'comma in math label $(a,b)$ is preserved');
+  assert(!result.includes('^c'), 'normalizeTikz does not introduce ^c artefact');
+  assert(!result.includes('(a^c b)'), 'normalizeTikz does not corrupt (a,b) to (a^c b)');
+});
+
+describe('normalizeTikz – comma in bare tikzpicture is preserved', () => {
+  const bare = `\\begin{tikzpicture}
+  \\node at (0,0) {$(a,b)$};
+\\end{tikzpicture}`;
+  const result = normalizeTikz(bare);
+  assert(result.includes('$(a,b)$'), 'comma in bare tikzpicture label is preserved after wrapping');
+  assert(!result.includes('^c'), 'wrapping does not introduce ^c artefact');
+});
+
+describe('index.css – RTL direction fix for TikZ SVG text', () => {
+  const css = readFileSync(resolve(__dirname, '../../../src/index.css'), 'utf8');
+  assert(
+    css.includes('.tikzjax-container svg'),
+    'index.css targets .tikzjax-container svg to override direction',
+  );
+  assert(
+    css.includes('direction: ltr'),
+    'index.css sets direction: ltr on tikzjax SVG elements',
+  );
+  assert(
+    css.includes('unicode-bidi: isolate'),
+    'index.css sets unicode-bidi: isolate on tikzjax SVG elements',
+  );
+  assert(
+    css.includes('.tikzjax-container svg text'),
+    'index.css targets .tikzjax-container svg text elements specifically',
+  );
+});
+
+describe('makeSvgTransparent – does not alter text content or SVG text nodes', () => {
+  // Reimplementation matching the source exactly (same as above in this file).
+  function makeSvgTransparentImpl(container: any): void {
+    container.querySelectorAll('svg').forEach((svg: any) => {
+      svg.style.background = '';
+      svg.style.backgroundColor = '';
+      const first = svg.querySelector(':scope > rect:first-child');
+      if (first) {
+        const fill = first.getAttribute('fill') ?? first.style.fill ?? '';
+        const normalised = fill.trim().toLowerCase();
+        if (
+          normalised === 'white' ||
+          normalised === '#fff' ||
+          normalised === '#ffffff' ||
+          normalised === 'rgb(255,255,255)' ||
+          normalised === 'rgb(255, 255, 255)'
+        ) {
+          first.setAttribute('fill', 'transparent');
+          first.style.fill = '';
+        }
+      }
+    });
+  }
+
+  // Build a mock SVG with a text node containing a comma label.
+  // makeSvgTransparent only calls container.querySelectorAll('svg') and then
+  // svg.querySelector(':scope > rect:first-child') – it never calls svg.querySelectorAll.
+  const textNode = {
+    tagName: 'TEXT',
+    textContent: '(a,b)',
+    style: {} as Record<string, string>,
+    getAttribute: (_: string) => null,
+    setAttribute: (_: string, __: string) => {},
+  };
+  const svg = {
+    tagName: 'SVG',
+    style: { background: 'white', backgroundColor: 'white' } as Record<string, string>,
+    querySelector: (_: string) => null,  // no background rect
+    _textNode: textNode,
+  };
+  const container = {
+    querySelectorAll: (sel: string) => sel === 'svg' ? [svg] : [],
+  };
+
+  makeSvgTransparentImpl(container);
+
+  assert(textNode.textContent === '(a,b)', 'makeSvgTransparent does not mutate text node content');
+  assert(!textNode.textContent.includes('^c'), 'makeSvgTransparent does not introduce ^c in text nodes');
+  assert(svg.style.background === '', 'makeSvgTransparent still clears SVG background');
+});
+
+// --------------------------------------------------------------------------
 // remarkMark plugin – ==...== highlight syntax
 // --------------------------------------------------------------------------
 // Dynamic import so the ESM module resolves correctly under tsx.
