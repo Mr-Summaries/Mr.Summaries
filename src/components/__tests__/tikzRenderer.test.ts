@@ -113,6 +113,19 @@ describe('TikzRenderer.tsx – structural requirements', () => {
     src.includes('dir="ltr"'),
     'tikzjax-wrapper pins dir="ltr" to prevent RTL parent from distorting diagram text',
   );
+  // Fonts injection: ensuring CMU fonts load so comma and other glyphs render correctly.
+  assert(
+    src.includes('export function ensureFontsCssLoaded'),
+    'ensureFontsCssLoaded is exported (runtime safety-net for fonts.css injection)',
+  );
+  assert(
+    src.includes('tikzjax.com/v1/fonts.css'),
+    'ensureFontsCssLoaded references the correct TikZJax fonts.css URL',
+  );
+  assert(
+    src.includes('ensureFontsCssLoaded()'),
+    'ensureTikzJaxLoaded calls ensureFontsCssLoaded to guarantee fonts are injected',
+  );
 });
 
 // --------------------------------------------------------------------------
@@ -382,6 +395,17 @@ describe('index.html – script tag checks', () => {
   assert(!html.includes('somethingorother'), 'broken CDN URL removed from index.html');
   assert(!html.includes('tikzjax-demo'), 'tikzjax-demo URL removed from index.html');
   assert(html.includes('tikzjax.com/v1/fonts.css'), 'fonts.css CDN is still present');
+  // Verify the fonts.css link is in <head> (not <body>) so it loads before any rendering.
+  const headSection = html.slice(0, html.indexOf('</head>'));
+  assert(
+    headSection.includes('tikzjax.com/v1/fonts.css'),
+    'fonts.css link is in <head> (loads before page renders)',
+  );
+  // Verify crossorigin attribute is set to avoid CORS failures for font files.
+  assert(
+    html.includes('fonts.css') && /fonts\.css[^>]*crossorigin|crossorigin[^>]*fonts\.css/.test(html),
+    'fonts.css link has crossorigin attribute to allow CORS font loading',
+  );
 });
 
 // --------------------------------------------------------------------------
