@@ -3,6 +3,27 @@ import { normalizeTikz } from './tikzUtils';
 import { useThemeStore } from '../store/useThemeStore';
 export { normalizeTikz } from './tikzUtils';
 
+// ── Font asset loader ─────────────────────────────────────────────────────────
+// TikZJax relies on CMU (Computer Modern Unicode) web fonts declared in
+// fonts.css.  Without them the browser falls back to generic glyphs and, for
+// example, a comma in math mode ($(a,b)$) may be rendered as the wrong symbol.
+// index.html already contains the <link> tag, but this function injects it
+// programmatically as a safety net in case the static tag is missing or the
+// app is embedded in another document.
+const TIKZJAX_FONTS_CSS = 'https://tikzjax.com/v1/fonts.css';
+
+/** Injects the TikZJax fonts.css <link> into <head> exactly once. */
+export function ensureFontsCssLoaded(): void {
+  if (typeof document === 'undefined') return;
+  if (document.querySelector(`link[href="${TIKZJAX_FONTS_CSS}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.crossOrigin = 'anonymous';
+  link.href = TIKZJAX_FONTS_CSS;
+  document.head.appendChild(link);
+}
+
 // ── Singleton library loader ──────────────────────────────────────────────────
 // tikzjax.js is served from /public/tikzjax.js via Vite's static asset handling.
 const TIKZJAX_URL = '/tikzjax.js';
@@ -19,6 +40,9 @@ const lib: {
 
 /** Returns a promise that resolves once tikzjax.js is loaded (or rejects on error/timeout). */
 export function ensureTikzJaxLoaded(): Promise<void> {
+  // Ensure CMU fonts are available before the first render attempt so that
+  // glyphs like the comma in $(a,b)$ are drawn from the correct font files.
+  ensureFontsCssLoaded();
   return new Promise<void>((resolve, reject) => {
     if (lib.status === 'loaded') { resolve(); return; }
     if (lib.status === 'error')  { reject(lib.error!); return; }
