@@ -301,6 +301,30 @@ describe('SvgRenderer.tsx – structural requirements', () => {
     src.includes('Invalid SVG') || src.includes('invalid svg') || src.includes('invalid SVG'),
     'shows error message for invalid/empty SVG input',
   );
+  assert(
+    src.includes('not-prose'),
+    'adds not-prose class to opt SVG content out of Tailwind Typography prose styles',
+  );
+});
+
+// --------------------------------------------------------------------------
+// index.css – SVG text rendering fix
+// --------------------------------------------------------------------------
+describe('index.css – SVG <text> display fix prevents prose context from breaking SVG rendering', () => {
+  const css = readFileSync(resolve(__dirname, '../../index.css'), 'utf8');
+
+  assert(
+    css.includes('display: inline') || css.includes('display:inline'),
+    'explicitly sets display:inline on SVG text elements to keep them in SVG coordinate-based layout',
+  );
+  assert(
+    css.includes('svg text') && (css.includes('.svg-renderer') || css.includes('svg-renderer')),
+    'the display:inline rule is scoped to .svg-renderer svg text (not global)',
+  );
+  assert(
+    css.includes('svg tspan'),
+    'covers tspan elements in addition to text',
+  );
 });
 
 // --------------------------------------------------------------------------

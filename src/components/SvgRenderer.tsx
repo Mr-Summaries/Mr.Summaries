@@ -44,7 +44,7 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ children }) => {
 
   return (
     <div
-      className="svg-renderer my-4 flex justify-center overflow-x-auto"
+      className="svg-renderer not-prose my-4 flex justify-center overflow-x-auto"
       dir="ltr"
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: sanitized }}
