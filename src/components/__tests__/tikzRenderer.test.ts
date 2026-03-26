@@ -653,6 +653,68 @@ async function runMathRenderingTests() {
   });
 }
 
+// --------------------------------------------------------------------------
+// remark-breaks – soft line breaks become <br>
+// --------------------------------------------------------------------------
+async function runRemarkBreaksTests() {
+  const { unified } = await import('unified');
+  const { default: remarkParse } = await import('remark-parse');
+  const { default: remarkGfm } = await import('remark-gfm');
+  const { default: remarkMath } = await import('remark-math');
+  const { default: remarkBreaks } = await import('remark-breaks');
+  const { default: remarkMark } = await import('../remarkMark.js');
+  const { markHandler } = await import('../remarkMark.js');
+  const { default: remarkRehype } = await import('remark-rehype');
+  const { default: rehypeKatex } = await import('rehype-katex');
+  const { default: rehypeStringify } = await import('rehype-stringify');
+  const { default: rehypeRaw } = await import('rehype-raw');
+
+  /** Same pipeline as NestedMarkdown (with remark-breaks, remark-math, remark-gfm, and remarkMark). */
+  async function renderMd(markdown: string): Promise<string> {
+    const file = await unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkMath)
+      .use(remarkBreaks)
+      .use(remarkMark)
+      .use(remarkRehype, { handlers: { mark: markHandler } as Record<string, unknown> })
+      .use(rehypeRaw)
+      .use(rehypeKatex, { strict: false })
+      .use(rehypeStringify)
+      .process(markdown);
+    return String(file);
+  }
+
+  // ── Test 1: single newline produces <br> ──
+  describe('remark-breaks – single newline becomes <br>', async () => {
+    const html = await renderMd('line one\nline two');
+    assert(html.includes('<br'), 'single \\n produces <br> element');
+  });
+
+  // ── Test 2: math still renders alongside line breaks ──
+  describe('remark-breaks – math renders correctly with line breaks', async () => {
+    const html = await renderMd('first line\n$x^2$ second line');
+    assert(html.includes('<br'), 'line break present');
+    assert(html.includes('katex'), 'KaTeX output present');
+    assert(!html.includes('katex-error'), 'no katex-error');
+  });
+
+  // ── Test 3: ==highlight== still works with remark-breaks ──
+  describe('remark-breaks – ==highlight== still produces <mark>', async () => {
+    const html = await renderMd('first line\n==highlighted== text');
+    assert(html.includes('<br'), 'line break present');
+    assert(html.includes('<mark>'), '==...== produces <mark> tag');
+  });
+
+  // ── Test 4: tikz fenced block is not broken by remark-breaks ──
+  describe('remark-breaks – tikz fenced block unaffected', async () => {
+    const md = '```tikz\n\\begin{tikzpicture}\n\\draw (0,0) circle (1);\n\\end{tikzpicture}\n```';
+    const html = await renderMd(md);
+    assert(html.includes('language-tikz'), 'tikz fenced code block has language-tikz class');
+    assert(!html.includes('katex-error'), 'no katex-error in tikz block');
+  });
+}
+
 // Run async tests and defer summary
 const asyncTestsDone = Promise.all([
   runRemarkMarkTests().catch((e) => {
@@ -661,6 +723,10 @@ const asyncTestsDone = Promise.all([
   }),
   runMathRenderingTests().catch((e) => {
     console.error('\nmath rendering async tests failed to load:', e);
+    failed++;
+  }),
+  runRemarkBreaksTests().catch((e) => {
+    console.error('\nremarkBreaks async tests failed to load:', e);
     failed++;
   }),
 ]);
