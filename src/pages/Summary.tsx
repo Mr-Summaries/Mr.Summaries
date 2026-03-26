@@ -7,12 +7,14 @@ import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { SummaryModal } from '../components/SummaryModal';
 import { TableOfContents } from '../components/TableOfContents';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Summary = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [tocItems, setTocItems] = useState<{ id: string, title: string, level: number }[]>([]);
@@ -27,8 +29,10 @@ const Summary = () => {
           const file = await api.getFile(res.fileID);
           
           if (file.mimeType === 'application/pdf') {
-            setContent('קובצי PDF אינם נתמכים יותר.');
+            setPdfUrl(await api.getFileView(res.fileID));
+            setContent('');
           } else {
+            setPdfUrl(null);
             const urlToFetch = await api.getFileView(res.fileID);
 
             const fileRes = await fetch(urlToFetch, {
@@ -121,14 +125,18 @@ const Summary = () => {
             )}
           </div>
 
-          <NestedMarkdown 
-            content={content} 
-            rightAlign={summary.rightAlign} 
-            onTOCChange={setTocItems}
-          />
+          {pdfUrl ? (
+            <PdfTextRenderer url={pdfUrl} rightAlign={summary.rightAlign} />
+          ) : (
+            <NestedMarkdown 
+              content={content} 
+              rightAlign={summary.rightAlign} 
+              onTOCChange={setTocItems}
+            />
+          )}
         </div>
 
-        <TableOfContents items={tocItems} />
+        {!pdfUrl && <TableOfContents items={tocItems} />}
       </div>
 
       <SummaryModal 

@@ -54,6 +54,8 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
+  const [fileType, setFileType] = useState<'md' | 'pdf'>('md');
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
     if (!summary || !confirm('האם אתה בטוח שברצונך למחוק סיכום זה?')) return;
@@ -90,12 +92,19 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
           setFileType('md');
           setNewFile(null);
           try {
-            await api.getFile(summary.fileID);
-            const text = await fetchFileContent(summary.fileID);
-            setContent(text);
-            setOrigContent(text);
+            const file = await api.getFile(summary.fileID);
+            if (file.mimeType === 'application/pdf') {
+              setFileType('pdf');
+            } else {
+              setFileType('md');
+              const text = await fetchFileContent(summary.fileID);
+              setContent(text);
+              setOrigContent(text);
+            }
           } catch (e) {
             console.error('Error loading file:', e);
+            // Fallback to text if file metadata fetch fails
+            setFileType('md');
             const text = await fetchFileContent(summary.fileID);
             setContent(text);
             setOrigContent(text);
@@ -108,8 +117,8 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         setRightAlign(false);
         setContent('');
         setOrigContent('');
-        setContent('');
-        setOrigContent('');
+        setFileType('md');
+        setNewFile(null);
       }
     }
   }, [summary, isOpen]);
@@ -126,10 +135,32 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
       const isCourseNumChanged = summary && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
       let finalFileId = summary?.fileID || '';
+      
+      const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf') => {
+        if (type === 'pdf') {
+          if (contentOrFile instanceof File) {
+            try {
+              await api.deleteFile(oldFileId);
+            } catch (e) {}
+            const res = await api.createFile(contentOrFile, id);
+            return res.$id;
+          }
+          return oldFileId;
+        } else {
+          const content = contentOrFile instanceof File ? await contentOrFile.text() : contentOrFile;
+          const filename = `${id}.${type}`;
+          return await uploadContent(content, filename, id);
+        }
+      };
 
-      if (content !== origContent || isNameChanged || isCourseNumChanged) {
+      if (fileType === 'pdf') {
+        if (newFile) {
+          const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
+          finalFileId = await uploadFile(newFile, id, finalFileId, 'pdf');
+        }
+      } else if (content !== origContent || isNameChanged || isCourseNumChanged) {
         const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
-        finalFileId = await uploadContent(content, `${id}.md`, id);
+        finalFileId = await uploadFile(content, id, finalFileId, fileType);
       }
 
       const data: any = {
@@ -219,6 +250,12 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                     יישור לימין (RTL)
                   </label>
                 </div>
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">סוג תוכן:</label>
+                  <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                    <button type="button" onClick={() => setFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                    <button type="button" onClick={() => setFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                  </div>
                 </div>
               </div>
 
@@ -226,6 +263,12 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                 <div className="flex flex-col items-center justify-center py-12 text-cyan-600 dark:text-cyan-400">
                   <Loader2 className="w-8 h-8 animate-spin mb-4" />
                   <p>טוען תוכן...</p>
+                </div>
+              ) : fileType === 'pdf' ? (
+                <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                  <p className="font-bold mb-2">סיכום זה הוא קובץ PDF.</p>
+                  <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
+                  <input type="file" accept="application/pdf" className="mt-4 w-full" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

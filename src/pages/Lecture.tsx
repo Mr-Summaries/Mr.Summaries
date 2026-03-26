@@ -6,12 +6,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { LectureModal } from '../components/LectureModal';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Lecture = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [lecture, setLecture] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
 
@@ -25,8 +27,10 @@ const Lecture = () => {
           const file = await api.getFile(res.fileID);
           
           if (file.mimeType === 'application/pdf') {
-            setContent('קובצי PDF אינם נתמכים יותר.');
+            setPdfUrl(await api.getFileView(res.fileID));
+            setContent('');
           } else {
+            setPdfUrl(null);
             const urlToFetch = await api.getFileView(res.fileID);
 
             const fileRes = await fetch(urlToFetch, {
@@ -117,10 +121,14 @@ const Lecture = () => {
         )}
       </div>
 
-      <NestedMarkdown 
-        content={content} 
-        rightAlign={lecture.rightAlign} 
-      />
+      {pdfUrl ? (
+        <PdfTextRenderer url={pdfUrl} rightAlign={lecture.rightAlign} />
+      ) : (
+        <NestedMarkdown 
+          content={content} 
+          rightAlign={lecture.rightAlign} 
+        />
+      )}
 
       <LectureModal 
         isOpen={isLectureModalOpen} 

@@ -10,6 +10,7 @@ import { SummaryModal } from '../components/SummaryModal';
 import { LectureModal } from '../components/LectureModal';
 import { ExampleModal } from '../components/ExampleModal';
 import { AddPageModal } from '../components/AddPageModal';
+import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Course = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Course = () => {
   const { user, isAdmin } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [content, setContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
@@ -68,8 +70,10 @@ const Course = () => {
           const file = await api.getFile(fileIdToFetch);
           
           if (file.mimeType === 'application/pdf') {
-            setContent('קובצי PDF אינם נתמכים יותר.');
+            setPdfUrl(await api.getFileView(fileIdToFetch));
+            setContent('');
           } else {
+            setPdfUrl(null);
             const urlToFetch = await api.getFileView(fileIdToFetch);
 
             const fileRes = await fetch(urlToFetch, {
@@ -418,6 +422,8 @@ const Course = () => {
             )}
           </div>
         </div>
+      ) : pdfUrl ? (
+        <PdfTextRenderer url={pdfUrl} rightAlign={course.rightAlign} />
       ) : (
         <NestedMarkdown content={content} rightAlign={course.rightAlign} />
       )}
