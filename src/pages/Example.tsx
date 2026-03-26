@@ -6,14 +6,12 @@ import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { ExampleModal } from '../components/ExampleModal';
-import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Example = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [example, setExample] = useState<any>(null);
   const [content, setContent] = useState<string>('');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isExampleModalOpen, setIsExampleModalOpen] = useState(false);
 
@@ -24,29 +22,21 @@ const Example = () => {
 
       if (res.fileID) {
         try {
-          const file = await api.getFile(res.fileID);
-          
-          if (file.mimeType === 'application/pdf') {
-            setPdfUrl(await api.getFileView(res.fileID));
-            setContent('');
-          } else {
-            setPdfUrl(null);
-            const urlToFetch = await api.getFileView(res.fileID);
+          const urlToFetch = await api.getFileView(res.fileID);
 
-            const fileRes = await fetch(urlToFetch, {
-              credentials: 'include'
-            });
-            
-            const contentType = fileRes.headers.get('content-type');
-            const isHtml = contentType?.includes('text/html');
-            
-            if (fileRes.ok && !isHtml) {
-              const text = await fileRes.text();
-              setContent(text);
-            } else {
-              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-            }
+          const fileRes = await fetch(urlToFetch, {
+            credentials: 'include'
+          });
+          
+          const contentType = fileRes.headers.get('content-type');
+          const isHtml = contentType?.includes('text/html');
+          
+          if (fileRes.ok && !isHtml) {
+            const text = await fileRes.text();
+            setContent(text);
+          } else {
+            console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+            setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
           }
         } catch (e: any) {
           console.error('Error fetching example content:', e);
@@ -121,14 +111,10 @@ const Example = () => {
         )}
       </div>
 
-      {pdfUrl ? (
-        <PdfTextRenderer url={pdfUrl} rightAlign={example.rightAlign} />
-      ) : (
-        <NestedMarkdown 
+      <NestedMarkdown 
           content={content} 
           rightAlign={example.rightAlign} 
         />
-      )}
 
       <ExampleModal 
         isOpen={isExampleModalOpen} 

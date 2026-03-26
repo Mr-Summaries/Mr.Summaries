@@ -7,14 +7,12 @@ import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { SummaryModal } from '../components/SummaryModal';
 import { TableOfContents } from '../components/TableOfContents';
-import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Summary = () => {
   const { id } = useParams();
   const { isAdmin } = useAuthStore();
   const [summary, setSummary] = useState<any>(null);
   const [content, setContent] = useState<string>('');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [tocItems, setTocItems] = useState<{ id: string, title: string, level: number }[]>([]);
@@ -26,29 +24,21 @@ const Summary = () => {
 
       if (res.fileID) {
         try {
-          const file = await api.getFile(res.fileID);
-          
-          if (file.mimeType === 'application/pdf') {
-            setPdfUrl(await api.getFileView(res.fileID));
-            setContent('');
-          } else {
-            setPdfUrl(null);
-            const urlToFetch = await api.getFileView(res.fileID);
+          const urlToFetch = await api.getFileView(res.fileID);
 
-            const fileRes = await fetch(urlToFetch, {
-              credentials: 'include'
-            });
-            
-            const contentType = fileRes.headers.get('content-type');
-            const isHtml = contentType?.includes('text/html');
-            
-            if (fileRes.ok && !isHtml) {
-              const text = await fileRes.text();
-              setContent(text);
-            } else {
-              console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
-              setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
-            }
+          const fileRes = await fetch(urlToFetch, {
+            credentials: 'include'
+          });
+          
+          const contentType = fileRes.headers.get('content-type');
+          const isHtml = contentType?.includes('text/html');
+          
+          if (fileRes.ok && !isHtml) {
+            const text = await fileRes.text();
+            setContent(text);
+          } else {
+            console.error('Fetch failed or returned HTML:', fileRes.status, contentType);
+            setContent('לא ניתן לטעון את התוכן. ייתכן שאין הרשאות מתאימות.');
           }
         } catch (e: any) {
           console.error('Error fetching summary content:', e);
@@ -125,18 +115,14 @@ const Summary = () => {
             )}
           </div>
 
-          {pdfUrl ? (
-            <PdfTextRenderer url={pdfUrl} rightAlign={summary.rightAlign} />
-          ) : (
-            <NestedMarkdown 
+          <NestedMarkdown 
               content={content} 
               rightAlign={summary.rightAlign} 
               onTOCChange={setTocItems}
             />
-          )}
         </div>
 
-        {!pdfUrl && <TableOfContents items={tocItems} />}
+        <TableOfContents items={tocItems} />
       </div>
 
       <SummaryModal 

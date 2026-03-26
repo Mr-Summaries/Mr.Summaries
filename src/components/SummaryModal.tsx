@@ -54,8 +54,6 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState('');
-  const [fileType, setFileType] = useState<'md' | 'pdf'>('md');
-  const [newFile, setNewFile] = useState<File | null>(null);
 
   const handleDelete = async () => {
     if (!summary || !confirm('האם אתה בטוח שברצונך למחוק סיכום זה?')) return;
@@ -89,22 +87,13 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         
         const loadContent = async () => {
           setIsLoadingContent(true);
-          setFileType('md');
           setNewFile(null);
           try {
-            const file = await api.getFile(summary.fileID);
-            if (file.mimeType === 'application/pdf') {
-              setFileType('pdf');
-            } else {
-              setFileType('md');
-              const text = await fetchFileContent(summary.fileID);
-              setContent(text);
-              setOrigContent(text);
-            }
+            const text = await fetchFileContent(summary.fileID);
+            setContent(text);
+            setOrigContent(text);
           } catch (e) {
             console.error('Error loading file:', e);
-            // Fallback to text if file metadata fetch fails
-            setFileType('md');
             const text = await fetchFileContent(summary.fileID);
             setContent(text);
             setOrigContent(text);
@@ -117,8 +106,6 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         setRightAlign(false);
         setContent('');
         setOrigContent('');
-        setFileType('md');
-        setNewFile(null);
       }
     }
   }, [summary, isOpen]);
