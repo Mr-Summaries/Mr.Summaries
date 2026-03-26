@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { motion } from 'motion/react';
@@ -83,7 +84,7 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
     >
       <div className={proseClasses}>
         <ReactMarkdown 
-          remarkPlugins={[remarkGfm, remarkMath, remarkMark]} 
+          remarkPlugins={[remarkGfm, remarkMath, remarkBreaks, remarkMark]} 
           rehypePlugins={[rehypeRaw, [rehypeKatex, { strict: false }]]}
           remarkRehypeOptions={{ handlers: { mark: markHandler } as Record<string, unknown> }}
           components={{
