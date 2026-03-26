@@ -188,7 +188,7 @@ export const TikzRenderer = ({ children }: { children: string }) => {
   }, [children]);
 
   return (
-    <div className="tikzjax-wrapper my-4">
+    <div className="tikzjax-wrapper my-4" dir="ltr">
       {status === 'loading' && (
         <div className="p-4 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm">
           Rendering TikZ diagram…

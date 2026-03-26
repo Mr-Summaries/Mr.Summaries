@@ -107,6 +107,12 @@ describe('TikzRenderer.tsx – structural requirements', () => {
   assert(src.includes("status === 'loading'"), 'has per-block loading state');
   assert(src.includes("status !== 'success'") || src.includes("status === 'success'"), 'has per-block success state');
   assert(src.includes('lib.listeners'), 'uses shared listener array for singleton loading');
+  // RTL fix: the outer wrapper must pin direction to LTR so that TikZ diagrams
+  // are never affected by a parent dir="rtl" (e.g. when rightAlign is on).
+  assert(
+    src.includes('dir="ltr"'),
+    'tikzjax-wrapper pins dir="ltr" to prevent RTL parent from distorting diagram text',
+  );
 });
 
 // --------------------------------------------------------------------------
