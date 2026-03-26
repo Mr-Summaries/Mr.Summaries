@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { sanitizeSvg } from './svgUtils';
+import { sanitizeSvg, rewriteSvgRoot } from './svgUtils';
 
 interface SvgRendererProps {
   /** Raw SVG markup (the content of a fenced ```svg block). */
@@ -12,8 +12,10 @@ interface SvgRendererProps {
  * - Sanitizes the markup via `sanitizeSvg` (strips scripts, foreignObject,
  *   event handlers, and javascript: URIs) before injecting into the DOM.
  * - Sets `width="100%"` on the <svg> root so it fills its container.
- * - Preserves the original `viewBox` (or `height`) so the aspect ratio is
- *   maintained automatically.
+ * - When a `viewBox` is present, removes the hard-coded `height` and injects
+ *   `style="height:auto"` so the browser derives the rendered height from the
+ *   viewBox aspect ratio instead of defaulting to the CSS intrinsic 150 px.
+ * - When no `viewBox` is present, the original `height` is left unchanged.
  * - Uses `currentColor` context so strokes/fills declared as `currentColor`
  *   adapt to the surrounding text colour in both light and dark themes.
  */
@@ -23,19 +25,12 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ children }) => {
     if (!clean) return null;
 
     // Make the SVG responsive: override width to 100% so it fills the
-    // container, and remove any hard-coded height to let the viewBox control
-    // the aspect ratio. If there is no viewBox we leave height alone.
-    return clean
-      .replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
-        // Replace or insert width="100%"
-        let a = attrs.replace(/\bwidth\s*=\s*(?:"[^"]*"|'[^']*'|\S+)/i, '');
-        // Remove hard-coded height only when a viewBox is present (aspect
-        // ratio is then preserved automatically by the browser).
-        if (/\bviewBox\s*=/i.test(a)) {
-          a = a.replace(/\bheight\s*=\s*(?:"[^"]*"|'[^']*'|\S+)/i, '');
-        }
-        return `<svg width="100%"${a.startsWith(' ') ? '' : ' '}${a.trimEnd()}>`;
-      });
+    // container.  When a viewBox is present we can derive the correct rendered
+    // height from the aspect ratio — but only if we explicitly set
+    // style="height:auto".  Without that, some browsers fall back to the CSS
+    // replaced-element default of 150 px, causing diagrams to appear squashed
+    // or incorrectly scaled.  If there is no viewBox we leave height alone.
+    return rewriteSvgRoot(clean);
   }, [children]);
 
   if (!sanitized) {

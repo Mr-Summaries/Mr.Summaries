@@ -77,3 +77,41 @@ export function sanitizeSvg(svgInput: string): string {
 export function isSafeSvg(svgInput: string): boolean {
   return sanitizeSvg(svgInput).length > 0;
 }
+
+/**
+ * Rewrites the root `<svg>` tag of already-sanitized markup to make it
+ * responsive while preserving the correct aspect ratio.
+ *
+ * Strategy:
+ *  - Always sets `width="100%"` so the diagram fills its container.
+ *  - When a `viewBox` is present, removes the hard-coded `height` attribute
+ *    and injects `style="height:auto"` so the browser derives the rendered
+ *    height from the viewBox aspect ratio instead of defaulting to the CSS
+ *    replaced-element intrinsic value of 150 px.
+ *  - When no `viewBox` is present, the original `height` attribute is left
+ *    unchanged.
+ *  - Merges `height:auto` into an existing `style` attribute if one is
+ *    present, using a trailing-semicolon-aware join to avoid double semicolons.
+ */
+export function rewriteSvgRoot(svg: string): string {
+  return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    // Replace or insert width="100%"
+    let a = attrs.replace(/\bwidth\s*=\s*(?:"[^"]*"|'[^']*'|\S+)/i, '');
+    // Remove hard-coded height only when a viewBox is present, then inject
+    // height:auto so the browser uses the viewBox aspect ratio.
+    if (/\bviewBox\s*=/i.test(a)) {
+      a = a.replace(/\bheight\s*=\s*(?:"[^"]*"|'[^']*'|\S+)/i, '');
+      // Merge height:auto into an existing style attribute, or add one.
+      if (/\bstyle\s*=\s*"[^"]*"/i.test(a)) {
+        a = a.replace(
+          /(\bstyle\s*=\s*")([^"]*)(")/i,
+          (_m, open, val: string, close) =>
+            `${open}${val}${val && !val.trimEnd().endsWith(';') ? ';' : ''}height:auto${close}`,
+        );
+      } else {
+        a = `${a} style="height:auto"`;
+      }
+    }
+    return `<svg width="100%"${a.startsWith(' ') ? '' : ' '}${a.trimEnd()}>`;
+  });
+}
