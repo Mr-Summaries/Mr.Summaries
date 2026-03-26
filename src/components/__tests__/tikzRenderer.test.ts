@@ -202,7 +202,12 @@ describe('TikzRenderer.tsx – structural requirements', () => {
     'normalizeTikz is exported (directly or via re-export)',
   );
   assert(src.includes("'/tikzjax.js'"), 'uses local /tikzjax.js URL (not broken CDN)');
-  assert(!src.includes('process_tikz'), 'does not call non-existent process_tikz');
+  // process_tikz is now used CONDITIONALLY (typeof check), so the source will
+  // contain the string but will guard it with a type check before calling.
+  assert(
+    src.includes('process_tikz') && src.includes("typeof") && src.includes("'function'"),
+    'scheduleTikzRendering checks typeof window.process_tikz === "function" before calling it',
+  );
   assert(!src.includes('somethingorother'), 'does not reference broken CDN URL');
   assert(src.includes('RENDER_TIMEOUT_MS'), 'defines render timeout constant');
   assert(src.includes('LOAD_TIMEOUT_MS'), 'defines library load timeout constant');
@@ -233,8 +238,73 @@ describe('TikzRenderer.tsx – structural requirements', () => {
 });
 
 // --------------------------------------------------------------------------
-// Theme-aware style checks
+// scheduleTikzRendering – improved trigger logic
 // --------------------------------------------------------------------------
+describe('TikzRenderer.tsx – scheduleTikzRendering uses process_tikz preferentially', () => {
+  const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
+
+  // The function signature must accept an optional script element.
+  assert(
+    src.includes('scheduleTikzRendering(el') || src.includes('scheduleTikzRendering(el?'),
+    'scheduleTikzRendering accepts an optional script element parameter',
+  );
+
+  // Must try window.process_tikz first (newer TikZJax per-element API).
+  assert(
+    src.includes('process_tikz') && src.includes("typeof (window as any).process_tikz === 'function'"),
+    'scheduleTikzRendering guards window.process_tikz with a typeof check',
+  );
+
+  // Must still include a window.onload fallback for older tikzjax builds.
+  assert(
+    src.includes('window.onload') || src.includes("(window as any).onload"),
+    'scheduleTikzRendering keeps window.onload fallback for older TikZJax builds',
+  );
+
+  // Must pass the script element to scheduleTikzRendering at the call site.
+  assert(
+    src.includes('scheduleTikzRendering(tikzScript)'),
+    'component passes tikzScript element to scheduleTikzRendering',
+  );
+});
+
+// --------------------------------------------------------------------------
+// Error capture – console.error and unhandledrejection
+// --------------------------------------------------------------------------
+describe('TikzRenderer.tsx – surfaces TikZJax errors instead of only "timed out"', () => {
+  const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
+
+  // Must patch console.error to capture TikZJax error messages.
+  assert(
+    src.includes('console.error') && src.includes('capturedConsoleError'),
+    'patches console.error during rendering to capture TikZJax error messages',
+  );
+
+  // Must restore console.error after rendering (success or failure).
+  assert(
+    src.includes('console.error = origConsoleError'),
+    'restores original console.error after rendering completes',
+  );
+
+  // Must listen for unhandled promise rejections from tikzjax's async renderer.
+  assert(
+    src.includes("'unhandledrejection'"),
+    'listens for unhandledrejection events to capture async TikZJax errors',
+  );
+
+  // The captured error must be used as the displayed message.
+  assert(
+    src.includes('capturedRejection') && src.includes('capturedConsoleError'),
+    'uses captured rejection and console error as fallback error message',
+  );
+
+  // Must remove the rejection listener on cleanup / finish.
+  assert(
+    src.includes("removeEventListener('unhandledrejection'"),
+    'removes unhandledrejection listener on finish/cleanup to avoid leaks',
+  );
+});
+
 describe('TikzRenderer.tsx - theme-aware styles (light & dark mode)', () => {
   const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
 

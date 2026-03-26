@@ -74,15 +74,34 @@ export function ensureTikzJaxLoaded(): Promise<void> {
 }
 
 // ── Debounced render trigger ──────────────────────────────────────────────────
-// tikzjax.js sets window.onload = async function(){ ... } and that function
-// scans ALL <script type="text/tikz"> elements currently in the DOM and renders
-// them sequentially.  We call it manually here (the native page onload fired
-// before any React TikzRenderer components mounted).
-// Using a microtask debounce ensures that if many blocks mount simultaneously
-// only a single window.onload() call is made per tick.
+// Newer TikZJax builds expose window.process_tikz(scriptEl) which processes a
+// single <script type="text/tikz"> element directly.  Older builds (and the
+// one currently served from /tikzjax.js) instead set window.onload to a
+// function that scans ALL such elements in the DOM.
+//
+// We prefer window.process_tikz when available because:
+//  - it is per-element, so concurrent blocks do not interfere with each other;
+//  - calling window.onload() for a block whose script was inserted while
+//    another block is already mid-render can cause the two renders to race.
+//
+// If neither API is available we do nothing and rely on the per-block timeout.
 let triggerScheduled = false;
 
-export function scheduleTikzRendering(): void {
+export function scheduleTikzRendering(el?: HTMLScriptElement): void {
+  // Prefer the per-element API exposed by newer TikZJax builds.
+  // Let any error thrown by process_tikz bubble up to the caller so the
+  // per-block error state can report it instead of silently hanging.
+  if (el && typeof (window as any).process_tikz === 'function') {
+    (window as any).process_tikz(el);
+    return;
+  }
+
+  // Fallback: tikzjax.js sets window.onload which scans all
+  // <script type="text/tikz"> elements currently in the DOM and renders them
+  // sequentially.  We call it manually because the native page onload fired
+  // before any React TikzRenderer components mounted.
+  // Using a microtask debounce ensures that if many blocks mount simultaneously
+  // only a single window.onload() call is made per tick.
   if (triggerScheduled) return;
   triggerScheduled = true;
   Promise.resolve().then(() => {
@@ -157,16 +176,42 @@ export const TikzRenderer = ({ children }: { children: string }) => {
     let obs:   MutationObserver | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
+    // Capture the first console.error emitted during rendering so we can
+    // surface a meaningful message instead of just "timed out".
+    let capturedConsoleError = '';
+    const origConsoleError = console.error.bind(console);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const consoleErrorCapture = (...args: any[]) => {
+      if (!capturedConsoleError) capturedConsoleError = args.map(String).join(' ');
+      origConsoleError(...args);
+    };
+    console.error = consoleErrorCapture;
+
+    // Capture unhandled promise rejections that may come from tikzjax's async render.
+    let capturedRejection = '';
+    const rejectionListener = (e: PromiseRejectionEvent) => {
+      if (!capturedRejection) {
+        capturedRejection =
+          e.reason instanceof Error ? e.reason.message : String(e.reason ?? '');
+      }
+    };
+    window.addEventListener('unhandledrejection', rejectionListener);
+
     function finish(ok: boolean, msg = '') {
       if (!alive) return;
+      // Restore console.error and remove the rejection listener.
+      console.error = origConsoleError;
+      window.removeEventListener('unhandledrejection', rejectionListener);
       obs?.disconnect(); obs = null;
       if (timer) { clearTimeout(timer); timer = null; }
       if (ok) {
         makeSvgTransparent(el);
         setStatus('success');
       } else {
+        // Prefer an explicit message; fall back to any captured error hint.
+        const displayMsg = msg || capturedRejection || capturedConsoleError || '';
         setStatus('error');
-        setErrorMsg(msg);
+        setErrorMsg(displayMsg);
       }
     }
 
@@ -192,8 +237,18 @@ export const TikzRenderer = ({ children }: { children: string }) => {
       });
       obs.observe(el, { childList: true });
 
-      // 4. Trigger tikzjax processing (debounced so concurrent mounts coalesce)
-      scheduleTikzRendering();
+      // 4. Trigger tikzjax processing.
+      //    scheduleTikzRendering uses window.process_tikz(el) when available
+      //    (newer TikZJax, per-element API) and falls back to window.onload()
+      //    (older TikZJax, scans all script[type=text/tikz] in the DOM).
+      //    Errors from process_tikz (synchronous) are caught here so the
+      //    per-block error state can surface them immediately.
+      try {
+        scheduleTikzRendering(tikzScript);
+      } catch (e: unknown) {
+        finish(false, e instanceof Error ? e.message : 'TikZ processing failed');
+        return;
+      }
 
       // 5. Safety timeout – never leave the block in an infinite loading state
       timer = setTimeout(
@@ -206,6 +261,8 @@ export const TikzRenderer = ({ children }: { children: string }) => {
 
     return () => {
       alive = false;
+      console.error = origConsoleError;
+      window.removeEventListener('unhandledrejection', rejectionListener);
       obs?.disconnect(); obs = null;
       if (timer) { clearTimeout(timer); timer = null; }
     };
