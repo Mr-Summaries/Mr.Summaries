@@ -16,7 +16,7 @@
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { sanitizeSvg, isSafeSvg } from '../svgUtils';
+import { sanitizeSvg, isSafeSvg, rewriteSvgRoot } from '../svgUtils';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -151,6 +151,125 @@ describe('sanitizeSvg – preserves safe SVG attributes', () => {
 });
 
 // --------------------------------------------------------------------------
+// sanitizeSvg – marker / defs preservation (regression for arrow diagrams)
+// --------------------------------------------------------------------------
+describe('sanitizeSvg – preserves <defs> and <marker> elements', () => {
+  const input =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">' +
+    '<defs>' +
+    '<marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">' +
+    '<path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>' +
+    '</marker>' +
+    '</defs>' +
+    '<line x1="30" y1="60" x2="270" y2="60" stroke="#333" marker-end="url(#arr)"/>' +
+    '</svg>';
+  const result = sanitizeSvg(input);
+  assert(result.includes('<defs>'), '<defs> element is preserved');
+  assert(result.includes('<marker'), '<marker> element is preserved');
+  assert(result.includes('<path'), '<path> inside marker is preserved');
+  assert(result.includes('marker-end="url(#arr)"'), 'marker-end url(#id) reference is preserved');
+});
+
+describe('sanitizeSvg – preserves marker-start and marker-end attributes', () => {
+  const input =
+    '<svg xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="0" y1="0" x2="100" y2="0" marker-start="url(#s)" marker-end="url(#e)"/>' +
+    '</svg>';
+  const result = sanitizeSvg(input);
+  assert(result.includes('marker-start="url(#s)"'), 'marker-start attribute is preserved');
+  assert(result.includes('marker-end="url(#e)"'), 'marker-end attribute is preserved');
+});
+
+describe('sanitizeSvg – preserves complete arrow-diagram SVG (regression)', () => {
+  const arrowSvg =
+    '<svg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<marker id="arrow-black-start" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
+    '<path d="M 10 0 L 0 5 L 10 10 z" fill="#333333"/>' +
+    '</marker>' +
+    '<marker id="arrow-black-end" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">' +
+    '<path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/>' +
+    '</marker>' +
+    '</defs>' +
+    '<line x1="30" y1="60" x2="270" y2="60" stroke="#333333" marker-start="url(#arrow-black-start)" marker-end="url(#arrow-black-end)"/>' +
+    '<circle cx="90" cy="60" r="4.5" fill="#ffffff" stroke="#0055cc" stroke-width="2"/>' +
+    '<text x="150" y="38" text-anchor="middle">(a, b)</text>' +
+    '</svg>';
+  const result = sanitizeSvg(arrowSvg);
+  assert(result.includes('<defs>'), '<defs> preserved in full diagram');
+  assert(result.includes('id="arrow-black-start"'), 'marker id preserved');
+  assert(result.includes('id="arrow-black-end"'), 'marker id preserved');
+  assert(result.includes('orient="auto-start-reverse"'), 'orient attribute preserved');
+  assert(result.includes('marker-start="url(#arrow-black-start)"'), 'marker-start url(#id) preserved');
+  assert(result.includes('marker-end="url(#arrow-black-end)"'), 'marker-end url(#id) preserved');
+  assert(result.includes('<circle'), 'circle element preserved');
+  assert(result.includes('<text'), 'text element preserved');
+  assert(!result.includes('<script'), 'no script injection');
+});
+
+// --------------------------------------------------------------------------
+// rewriteSvgRoot – runtime transformation tests
+// --------------------------------------------------------------------------
+describe('rewriteSvgRoot – sets width="100%" on the svg tag', () => {
+  const input = '<svg width="300" height="100"><circle r="5"/></svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('width="100%"'), 'width is set to 100%');
+  assert(!result.includes('width="300"'), 'original pixel width is removed');
+});
+
+describe('rewriteSvgRoot – injects style="height:auto" when viewBox is present', () => {
+  const input = '<svg width="300" height="100" viewBox="0 0 300 100"><rect/></svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('width="100%"'), 'width is 100%');
+  assert(!result.includes('height="100"'), 'explicit height attribute is removed');
+  assert(result.includes('height:auto'), 'style="height:auto" is injected');
+});
+
+describe('rewriteSvgRoot – preserves height when no viewBox is present', () => {
+  const input = '<svg width="300" height="150"><rect/></svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('width="100%"'), 'width is 100%');
+  assert(result.includes('height="150"'), 'height is preserved when no viewBox');
+  assert(!result.includes('height:auto'), 'no style="height:auto" without viewBox');
+});
+
+describe('rewriteSvgRoot – merges height:auto into existing style attribute', () => {
+  const input = '<svg width="200" height="100" viewBox="0 0 200 100" style="display:block"><rect/></svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('height:auto'), 'height:auto is added');
+  assert(result.includes('display:block'), 'existing style property is preserved');
+  // Must not produce a double semicolon
+  assert(!result.includes(';;'), 'no double semicolons in style attribute');
+});
+
+describe('rewriteSvgRoot – existing style with trailing semicolon does not produce double semicolon', () => {
+  const input = '<svg width="200" height="100" viewBox="0 0 200 100" style="display:block;"><rect/></svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('height:auto'), 'height:auto is added');
+  assert(!result.includes(';;'), 'no double semicolons when existing style ends with ;');
+});
+
+describe('rewriteSvgRoot – full arrow-diagram SVG renders with correct attributes', () => {
+  const input =
+    '<svg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<marker id="arrow-black-start" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
+    '<path d="M 10 0 L 0 5 L 10 10 z" fill="#333333"/>' +
+    '</marker>' +
+    '</defs>' +
+    '<line x1="30" y1="60" x2="270" y2="60" stroke="#333333" marker-start="url(#arrow-black-start)" marker-end="url(#arrow-black-end)"/>' +
+    '</svg>';
+  const result = rewriteSvgRoot(input);
+  assert(result.includes('width="100%"'), 'width is 100%');
+  assert(result.includes('height:auto'), 'height:auto is injected');
+  assert(!result.includes('height="100"'), 'explicit height removed');
+  assert(result.includes('viewBox="0 0 300 100"'), 'viewBox preserved');
+  assert(result.includes('<defs>'), '<defs> preserved');
+  assert(result.includes('marker-start="url(#arrow-black-start)"'), 'marker-start preserved');
+  assert(result.includes('marker-end="url(#arrow-black-end)"'), 'marker-end preserved');
+});
+
+// --------------------------------------------------------------------------
 // isSafeSvg
 // --------------------------------------------------------------------------
 describe('isSafeSvg – returns true for valid SVG', () => {
@@ -172,6 +291,10 @@ describe('SvgRenderer.tsx – structural requirements', () => {
   assert(src.includes('dangerouslySetInnerHTML'), 'renders via dangerouslySetInnerHTML after sanitization');
   assert(src.includes('useMemo'), 'uses useMemo to avoid re-sanitizing on every render');
   assert(src.includes('width="100%"'), 'sets responsive width="100%"');
+  assert(
+    src.includes('height:auto'),
+    'injects style="height:auto" when viewBox is present to prevent 150px intrinsic-height fallback',
+  );
   assert(src.includes('dir="ltr"'), 'pins dir="ltr" to prevent RTL parent from distorting diagram');
   assert(src.includes('overflow-x-auto'), 'uses overflow-x-auto for wide SVGs');
   assert(
