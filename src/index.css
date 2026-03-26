@@ -16,20 +16,7 @@
   unicode-bidi: isolate;
 }
 
-/* Fix inline SVG <text> positioning: prevent CSS inherited from the
-   surrounding Tailwind prose context from pulling SVG text elements out of
-   SVG's coordinate-based rendering model.
 
-   Without this, browsers can treat <text>, <tspan>, and <tref> as HTML
-   block-flow elements — causing them to render below the SVG image and
-   ignore their authored x/y positions entirely.  Asserting display:inline
-   keeps them in SVG's own layout context where x/y attributes govern
-   placement. */
-.svg-renderer svg text,
-.svg-renderer svg tspan,
-.svg-renderer svg tref {
-  display: inline;
-}
 
 @plugin "@tailwindcss/typography";
 

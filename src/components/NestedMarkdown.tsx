@@ -26,6 +26,24 @@ const slugify = (text: string) => {
     .replace(/--+/g, '-');    // Replace multiple - with single -
 };
 
+const preprocessSVGs = (text: string) => {
+  if (!text) return '';
+  // Split by code blocks to avoid modifying SVGs already inside code blocks
+  const parts = text.split(/(^```[\s\S]*?^```)/gm);
+  
+  return parts.map((part, index) => {
+    // Even indices are regular text (outside code blocks)
+    if (index % 2 === 0) {
+      // Find raw <svg>...</svg> and wrap them in markdown code blocks
+      return part.replace(/<svg[\s\S]*?<\/svg>/gi, (match) => {
+        return `\n\`\`\`svg\n${match}\n\`\`\`\n`;
+      });
+    }
+    // Odd indices are existing code blocks, keep them untouched
+    return part;
+  }).join('');
+};
+
 const parseSections = (text: string): SectionNode[] => {
   const rawSections = (text || '').split(/(?=^#{1,6}\s)/m).filter(s => s.trim().length > 0);
   const rootNodes: SectionNode[] = [];
@@ -131,7 +149,10 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
 });
 
 export const NestedMarkdown = React.memo(({ content, rightAlign = false, onTOCChange }: { content: string, rightAlign?: boolean, onTOCChange?: (toc: { id: string, title: string, level: number }[]) => void }) => {
-  const rootNodes = useMemo(() => parseSections(content), [content]);
+  const rootNodes = useMemo(() => {
+    const processedContent = preprocessSVGs(content);
+    return parseSections(processedContent);
+  }, [content]);
   
   useEffect(() => {
     if (onTOCChange) {
