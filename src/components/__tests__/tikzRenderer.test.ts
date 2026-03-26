@@ -17,7 +17,7 @@
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { normalizeTikz } from '../tikzUtils';
+import { normalizeTikz, extractAllowedPreamble } from '../tikzUtils';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -82,9 +82,113 @@ describe('normalizeTikz – empty string produces valid wrapper', () => {
 });
 
 // --------------------------------------------------------------------------
-// Source-level structural checks
-// (verify key implementation properties without requiring a browser)
+// extractAllowedPreamble
 // --------------------------------------------------------------------------
+describe('extractAllowedPreamble – allows \\usepackage and \\usetikzlibrary', () => {
+  const preamble = '\\usepackage{amsmath}\n\\usetikzlibrary{arrows.meta}\n\\newcommand{\\foo}{bar}';
+  const result = extractAllowedPreamble(preamble);
+  assert(result.includes('\\usepackage{amsmath}'), 'allows \\usepackage{amsmath}');
+  assert(result.includes('\\usetikzlibrary{arrows.meta}'), 'allows \\usetikzlibrary{arrows.meta}');
+  assert(!result.includes('\\newcommand{\\foo}{bar}'), 'rejects \\newcommand');
+  assert(result.length === 2, 'returns exactly 2 allowed lines');
+});
+
+describe('extractAllowedPreamble – allows \\usepackage with optional args', () => {
+  const preamble = '\\usepackage[utf8]{inputenc}\n\\usetikzlibrary[]{decorations.pathreplacing}';
+  const result = extractAllowedPreamble(preamble);
+  assert(result.length === 2, 'both lines with optional args are allowed');
+});
+
+describe('extractAllowedPreamble – strips blank lines and unknown commands', () => {
+  const preamble = '\n\\def\\foo{bar}\n\n\\usepackage{tikz}\n';
+  const result = extractAllowedPreamble(preamble);
+  assert(result.length === 1, 'only \\usepackage{tikz} survives');
+  assert(result[0] === '\\usepackage{tikz}', 'correct package preserved');
+});
+
+describe('extractAllowedPreamble – empty string returns empty array', () => {
+  const result = extractAllowedPreamble('');
+  assert(result.length === 0, 'empty input yields empty array');
+});
+
+// --------------------------------------------------------------------------
+// normalizeTikz – preamble handling
+// --------------------------------------------------------------------------
+describe('normalizeTikz – preamble before \\begin{document} is extracted and placed before it', () => {
+  const input = `\\usepackage{amsmath,amssymb}
+\\usetikzlibrary{decorations.pathreplacing, arrows.meta}
+
+\\begin{document}
+\\begin{tikzpicture}
+  \\draw (0,0) -- (1,1);
+\\end{tikzpicture}
+\\end{document}`;
+
+  const result = normalizeTikz(input);
+  assert(result.includes('\\usepackage{amsmath,amssymb}'), 'usepackage line is preserved');
+  assert(result.includes('\\usetikzlibrary{decorations.pathreplacing, arrows.meta}'), 'usetikzlibrary line is preserved');
+  assert(result.includes('\\begin{document}'), 'document wrapper is preserved');
+  assert(result.includes('\\begin{tikzpicture}'), 'tikzpicture content is preserved');
+  // preamble must appear before \begin{document}
+  assert(
+    result.indexOf('\\usepackage') < result.indexOf('\\begin{document}'),
+    '\\usepackage appears before \\begin{document}',
+  );
+  assert(
+    result.indexOf('\\usetikzlibrary') < result.indexOf('\\begin{document}'),
+    '\\usetikzlibrary appears before \\begin{document}',
+  );
+  // must not double-wrap
+  assert(
+    (result.match(/\\begin\{document\}/g) ?? []).length === 1,
+    'no double \\begin{document}',
+  );
+});
+
+describe('normalizeTikz – unknown preamble commands are silently dropped', () => {
+  const input = `\\newcommand{\\foo}{bar}
+\\def\\baz{qux}
+
+\\begin{document}
+\\begin{tikzpicture}
+  \\draw (0,0) circle (1);
+\\end{tikzpicture}
+\\end{document}`;
+
+  const result = normalizeTikz(input);
+  assert(!result.includes('\\newcommand'), 'unknown \\newcommand is dropped');
+  assert(!result.includes('\\def'), 'unknown \\def is dropped');
+  assert(result.includes('\\begin{document}'), 'document wrapper is preserved');
+  assert(result.includes('\\draw'), 'tikz body is preserved');
+});
+
+describe('normalizeTikz – only allowed preamble commands pass through (mixed input)', () => {
+  const input = `\\usepackage{tikz}
+\\newcommand{\\R}{\\mathbb{R}}
+
+\\begin{document}
+\\begin{tikzpicture}
+  \\draw (0,0) -- (1,0);
+\\end{tikzpicture}
+\\end{document}`;
+
+  const result = normalizeTikz(input);
+  assert(result.includes('\\usepackage{tikz}'), 'allowed \\usepackage survives');
+  assert(!result.includes('\\newcommand'), 'disallowed \\newcommand is stripped');
+  assert(result.indexOf('\\usepackage') < result.indexOf('\\begin{document}'), 'preamble is before document');
+});
+
+describe('normalizeTikz – no preamble with existing \\begin{document} returns unchanged', () => {
+  const input = `\\begin{document}
+\\begin{tikzpicture}
+  \\draw (0,0) -- (1,1);
+\\end{tikzpicture}
+\\end{document}`;
+  const result = normalizeTikz(input);
+  assert(result === input.trim(), 'content without preamble is returned unchanged');
+});
+
+
 describe('TikzRenderer.tsx – structural requirements', () => {
   const src = readFileSync(resolve(__dirname, '../TikzRenderer.tsx'), 'utf8');
 
