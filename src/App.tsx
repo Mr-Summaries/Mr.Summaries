@@ -14,7 +14,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Home = lazy(() => import('./pages/Home'));
 
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50">
+  <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-50">
     טוען...
   </div>
 );

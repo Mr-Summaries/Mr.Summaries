@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, Loader2, Eye, Edit3 } from 'lucide-react';
+import { X, Save, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { NestedMarkdown } from './NestedMarkdown';
 
-interface SummaryModalProps {
+interface ContentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
   onDelete?: () => void;
-  summary?: any; // If provided, we are editing
-  courseId?: string; // If creating new, we need the course ID
-  courseNumber?: string; // For naming convention
+  item?: any;
+  courseId?: string;
+  courseNumber?: string;
+  type: 'summary' | 'lecture' | 'example';
 }
 
 const fetchFileContent = async (fileId: string) => {
@@ -34,17 +35,23 @@ const uploadContent = async (content: string, filename: string, fileId: string) 
   const file = new File([content], filename, { type: 'text/markdown' });
   
   try {
-    // Try to delete existing file with same ID to allow "overwrite"
     await api.deleteFile(fileId);
-  } catch (e) {
-    // Ignore if file doesn't exist
-  }
+  } catch (e) {}
 
   const res = await api.createFile(file, fileId);
   return res.$id;
 };
 
-export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, onClose, onSave, onDelete, summary, courseId, courseNumber }) => {
+export const ContentModal: React.FC<ContentModalProps> = React.memo(({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  onDelete, 
+  item, 
+  courseId, 
+  courseNumber,
+  type 
+}) => {
   const [name, setName] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
   const [content, setContent] = useState('');
@@ -57,25 +64,37 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
   const [fileType, setFileType] = useState<'md' | 'pdf'>('md');
   const [newFile, setNewFile] = useState<File | null>(null);
 
+  const typeLabels = {
+    summary: { title: 'סיכום', add: 'הוספת סיכום חדש', edit: 'עריכת סיכום', delete: 'מחק סיכום', confirm: 'האם אתה בטוח שברצונך למחוק סיכום זה?' },
+    lecture: { title: 'הרצאה', add: 'הוספת הרצאה חדשה', edit: 'עריכת הרצאה', delete: 'מחק הרצאה', confirm: 'האם אתה בטוח שברצונך למחוק הרצאה זו?' },
+    example: { title: 'דוגמה', add: 'הוספת דוגמה חדשה', edit: 'עריכת דוגמה', delete: 'מחק דוגמה', confirm: 'האם אתה בטוח שברצונך למחוק דוגמה זו?' }
+  };
+
+  const labels = typeLabels[type];
+
   const handleDelete = async () => {
-    if (!summary || !confirm('האם אתה בטוח שברצונך למחוק סיכום זה?')) return;
+    if (!item || !confirm(labels.confirm)) return;
     setIsDeleting(true);
     setError('');
     try {
-      if (summary.fileID) {
+      if (item.fileID) {
         try {
-          await api.deleteFile(summary.fileID);
+          await api.deleteFile(item.fileID);
         } catch (e) {
           console.error('Error deleting file:', e);
         }
       }
-      await api.deleteSummary(summary.$id);
+      
+      if (type === 'summary') await api.deleteSummary(item.$id);
+      else if (type === 'lecture') await api.deleteLecture(item.$id);
+      else if (type === 'example') await api.deleteExample(item.$id);
+      
       onDelete?.();
       onSave();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'שגיאה במחיקת הסיכום');
+      setError(err.message || `שגיאה במחיקת ה${labels.title}`);
     } finally {
       setIsDeleting(false);
     }
@@ -83,29 +102,28 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
 
   useEffect(() => {
     if (isOpen) {
-      if (summary) {
-        setName(summary.name || '');
-        setRightAlign(summary.rightAlign || false);
+      if (item) {
+        setName(item.name || '');
+        setRightAlign(item.rightAlign || false);
         
         const loadContent = async () => {
           setIsLoadingContent(true);
           setFileType('md');
           setNewFile(null);
           try {
-            const file = await api.getFile(summary.fileID);
+            const file = await api.getFile(item.fileID);
             if (file.mimeType === 'application/pdf') {
               setFileType('pdf');
             } else {
               setFileType('md');
-              const text = await fetchFileContent(summary.fileID);
+              const text = await fetchFileContent(item.fileID);
               setContent(text);
               setOrigContent(text);
             }
           } catch (e) {
             console.error('Error loading file:', e);
-            // Fallback to text if file metadata fetch fails
             setFileType('md');
-            const text = await fetchFileContent(summary.fileID);
+            const text = await fetchFileContent(item.fileID);
             setContent(text);
             setOrigContent(text);
           }
@@ -121,7 +139,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         setNewFile(null);
       }
     }
-  }, [summary, isOpen]);
+  }, [item, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,11 +148,11 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
 
     try {
       const courseNum = courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '') || 'unknown';
-      const summaryName = name.trim().replace(/[^a-zA-Z0-9._-]/g, '');
-      const isNameChanged = summary && summaryName !== summary.name?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
-      const isCourseNumChanged = summary && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const itemName = name.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const isNameChanged = item && itemName !== item.name?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      const isCourseNumChanged = item && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
-      let finalFileId = summary?.fileID || '';
+      let finalFileId = item?.fileID || '';
       
       const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf') => {
         if (type === 'pdf') {
@@ -155,11 +173,11 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
 
       if (fileType === 'pdf') {
         if (newFile) {
-          const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
+          const id = `${type}-${itemName}-${courseNum}`.toLowerCase();
           finalFileId = await uploadFile(newFile, id, finalFileId, 'pdf');
         }
       } else if (content !== origContent || isNameChanged || isCourseNumChanged) {
-        const id = `summary-${summaryName}-${courseNum}`.toLowerCase();
+        const id = `${type}-${itemName}-${courseNum}`.toLowerCase();
         finalFileId = await uploadFile(content, id, finalFileId, fileType);
       }
 
@@ -169,21 +187,25 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
         fileID: finalFileId
       };
 
-      if (!summary && courseId) {
+      if (!item && courseId) {
         data.courses = courseId;
       }
 
-      if (summary) {
-        await api.updateSummary(summary.$id, data);
+      if (item) {
+        if (type === 'summary') await api.updateSummary(item.$id, data);
+        else if (type === 'lecture') await api.updateLecture(item.$id, data);
+        else if (type === 'example') await api.updateExample(item.$id, data);
       } else {
-        const docId = `summary-${summaryName}-${courseNum}`.toLowerCase();
-        await api.createSummary(docId, data);
+        const docId = `${type}-${itemName}-${courseNum}`.toLowerCase();
+        if (type === 'summary') await api.createSummary(docId, data);
+        else if (type === 'lecture') await api.createLecture(docId, data);
+        else if (type === 'example') await api.createExample(docId, data);
       }
       onSave();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'שגיאה בשמירת הסיכום');
+      setError(err.message || `שגיאה בשמירת ה${labels.title}`);
     } finally {
       setIsSaving(false);
     }
@@ -204,15 +226,15 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800"
+            className="relative w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-800"
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                {summary ? 'עריכת סיכום' : 'הוספת סיכום חדש'}
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md">
+              <h2 className="text-2xl font-bold text-zinc-50">
+                {item ? labels.edit : labels.add}
               </h2>
               <button
                 onClick={onClose}
-                className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                className="p-2 text-zinc-500 hover:bg-zinc-800 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -220,20 +242,20 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-200 dark:border-red-800">
+                <div className="p-4 bg-red-900/30 text-red-400 rounded-xl text-sm border border-red-800">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">שם הסיכום</label>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">שם ה{labels.title}</label>
                 <input
                   type="text"
                   required
                   disabled={isLoadingContent}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -244,50 +266,50 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                     id="rightAlign"
                     checked={rightAlign}
                     onChange={(e) => setRightAlign(e.target.checked)}
-                    className="w-5 h-5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
+                    className="w-5 h-5 rounded border-zinc-700 bg-zinc-800 text-cyan-600 focus:ring-cyan-500"
                   />
-                  <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-300">
                     יישור לימין (RTL)
                   </label>
                 </div>
                 <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">סוג תוכן:</label>
-                  <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                    <button type="button" onClick={() => setFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                    <button type="button" onClick={() => setFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                  <label className="text-sm font-medium text-zinc-300">סוג תוכן:</label>
+                  <div className="flex items-center gap-1 bg-zinc-800 p-1 rounded-lg">
+                    <button type="button" onClick={() => setFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'md' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                    <button type="button" onClick={() => setFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${fileType === 'pdf' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                   </div>
                 </div>
               </div>
 
               {isLoadingContent ? (
-                <div className="flex flex-col items-center justify-center py-12 text-cyan-600 dark:text-cyan-400">
+                <div className="flex flex-col items-center justify-center py-12 text-cyan-400">
                   <Loader2 className="w-8 h-8 animate-spin mb-4" />
                   <p>טוען תוכן...</p>
                 </div>
               ) : fileType === 'pdf' ? (
-                <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
-                  <p className="font-bold mb-2">סיכום זה הוא קובץ PDF.</p>
+                <div className="p-6 bg-amber-900/30 border border-amber-800 rounded-xl text-amber-200">
+                  <p className="font-bold mb-2">ה{labels.title} הוא קובץ PDF.</p>
                   <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
-                  <input type="file" accept="application/pdf" className="mt-4 w-full" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
+                  <input type="file" accept="application/pdf" className="mt-4 w-full text-zinc-300" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">עריכת תוכן (Markdown)</label>
+                    <label className="block text-sm font-medium text-zinc-300">עריכת תוכן (Markdown)</label>
                     <textarea
                       rows={20}
                       required
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                      className={`w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                       dir={rightAlign ? 'rtl' : 'ltr'}
-                      placeholder="# כותרת הסיכום..."
+                      placeholder={`# כותרת ה${labels.title}...`}
                     />
                   </div>
                   
                   <div className="space-y-4">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">תצוגה מקדימה</label>
-                    <div className="w-full px-6 py-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[480px] overflow-y-auto prose dark:prose-invert max-w-none">
+                    <label className="block text-sm font-medium text-zinc-300">תצוגה מקדימה</label>
+                    <div className="w-full px-6 py-6 rounded-xl border border-zinc-700 bg-zinc-800 h-[480px] overflow-y-auto prose prose-invert max-w-none">
                       {content ? <NestedMarkdown content={content} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                     </div>
                   </div>
@@ -298,16 +320,16 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                 <button
                   type="button"
                   onClick={handleDelete}
-                  disabled={isDeleting || !summary}
+                  disabled={isDeleting || !item}
                   className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
-                  {isDeleting ? 'מוחק...' : 'מחק סיכום'}
+                  {isDeleting ? 'מוחק...' : labels.delete}
                 </button>
                 <div className="flex">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                    className="px-6 py-2.5 text-zinc-400 hover:bg-zinc-800 rounded-xl transition-colors ml-4"
                   >
                     ביטול
                   </button>
@@ -317,7 +339,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = React.memo(({ isOpen, o
                     className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 transition-colors shadow-sm"
                   >
                     <Save className="w-4 h-4" />
-                    {isSaving ? 'שומר...' : 'שמור סיכום'}
+                    {isSaving ? 'שומר...' : `שמור ${labels.title}`}
                   </button>
                 </div>
               </div>

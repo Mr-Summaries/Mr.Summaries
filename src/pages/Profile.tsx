@@ -102,14 +102,14 @@ const Profile = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8" dir="rtl">
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+        <div className="w-16 h-16 bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-400">
           <User className="w-8 h-8" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">הפרופיל שלי</h1>
+          <h1 className="text-3xl font-bold text-zinc-50">הפרופיל שלי</h1>
           <div className="flex items-center gap-2 mt-2">
             <Shield className={`w-4 h-4 ${isAdmin ? 'text-emerald-500' : 'text-zinc-400'}`} />
-            <span className={`text-sm font-medium ${isAdmin ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
+            <span className={`text-sm font-medium ${isAdmin ? 'text-emerald-400' : 'text-zinc-400'}`}>
               סטטוס: {isAdmin ? 'מנהל מערכת' : 'משתמש רגיל'}
             </span>
           </div>
@@ -117,7 +117,7 @@ const Profile = () => {
       </div>
 
       {message.text && (
-        <div className={`p-4 rounded-xl text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'}`}>
+        <div className={`p-4 rounded-xl text-sm ${message.type === 'success' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800' : 'bg-red-900/30 text-red-400 border border-red-800'}`}>
           {message.text}
         </div>
       )}
@@ -127,7 +127,7 @@ const Profile = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
+          className="bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-800/50 shadow-sm"
         >
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <User className="w-5 h-5 text-cyan-500" />
@@ -135,12 +135,12 @@ const Profile = () => {
           </h2>
           <form onSubmit={handleUpdateName} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">שם מלא</label>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">שם מלא</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <button
@@ -159,7 +159,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
+          className="bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-800/50 shadow-sm"
         >
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <Mail className="w-5 h-5 text-cyan-500" />
@@ -167,23 +167,23 @@ const Profile = () => {
           </h2>
           <form onSubmit={handleUpdateEmail} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">אימייל חדש</label>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">אימייל חדש</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 dir="ltr"
-                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">סיסמה נוכחית (לאימות)</label>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">סיסמה נוכחית (לאימות)</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 dir="ltr"
-                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                className="w-full px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
               />
             </div>
             <button
@@ -203,7 +203,7 @@ const Profile = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-zinc-200/60 dark:bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
+        className="bg-zinc-900/60 backdrop-blur-xl p-6 rounded-3xl border border-zinc-800/50 shadow-sm"
       >
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-cyan-500" />
@@ -213,16 +213,16 @@ const Profile = () => {
         {enrolledCourses.length > 0 ? (
           <div className="space-y-4">
             {enrolledCourses.map(course => (
-              <div key={course.$id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50">
+              <div key={course.$id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-800/50 border border-zinc-700/50">
                 <div>
-                  <Link to={`/course/${course.$id}`} className="font-semibold text-cyan-600 dark:text-cyan-400 hover:underline">
+                  <Link to={`/course/${course.$id}`} className="font-semibold text-cyan-400 hover:underline">
                     {course.name}
                   </Link>
-                  <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{course.number}</div>
+                  <div className="text-sm text-zinc-400 mt-1">{course.number}</div>
                 </div>
                 <button
                   onClick={() => removeCourse(course.enrollmentId)}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                  className="p-2 text-red-500 hover:bg-red-900/20 rounded-xl transition-colors"
                   title="הסר קורס"
                 >
                   <Trash2 className="w-5 h-5" />
@@ -231,7 +231,7 @@ const Profile = () => {
             ))}
           </div>
         ) : (
-          <p className="text-zinc-500 dark:text-zinc-400">לא נרשמת לאף קורס עדיין.</p>
+          <p className="text-zinc-400">לא נרשמת לאף קורס עדיין.</p>
         )}
       </motion.div>
     </div>

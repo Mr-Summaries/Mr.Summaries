@@ -81,7 +81,7 @@ export const InteractiveBackground = memo(() => {
 
     const init = () => {
       particles = [];
-      const numberOfParticles = (canvas.width * canvas.height) / 6000;
+      const numberOfParticles = (canvas.width * canvas.height) / 3000;
       for (let i = 0; i < numberOfParticles; i++) {
         let x = Math.random() * canvas.width;
         let y = Math.random() * canvas.height;
@@ -146,18 +146,18 @@ export const InteractiveBackground = memo(() => {
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-zinc-100 dark:bg-zinc-950 transition-colors duration-500" dir="ltr">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-zinc-950 transition-colors duration-500" dir="ltr">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full opacity-40 dark:opacity-40"
+        className="absolute inset-0 w-full h-full opacity-40"
       />
       
       {/* Subtle Gradient Overlays for depth */}
-      <div className="absolute inset-0 bg-gradient-to-t from-zinc-100 via-transparent to-zinc-100/50 dark:from-zinc-950 dark:via-transparent dark:to-zinc-950/50 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.05)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-zinc-950/50 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)] pointer-events-none" />
       
       {/* Noise Texture */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
     </div>
   );
 });

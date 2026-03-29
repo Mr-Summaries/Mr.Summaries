@@ -253,10 +253,10 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800"
+            className="relative w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-800"
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md">
+              <h2 className="text-2xl font-bold text-zinc-50">
                 {course ? 'עריכת קורס' : 'הוספת קורס חדש'}
               </h2>
               <button
@@ -269,32 +269,32 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-200 dark:border-red-800">
+                <div className="p-4 bg-red-900/30 text-red-400 rounded-xl text-sm border border-red-800">
                   {error}
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">שם הקורס</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">שם הקורס</label>
                   <input
                     type="text"
                     required
                     disabled={isLoadingContent}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">מספר הקורס</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">מספר הקורס</label>
                   <input
                     type="text"
                     required
                     disabled={isLoadingContent}
                     value={number}
                     onChange={(e) => setNumber(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -307,13 +307,13 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                   onChange={(e) => setRightAlign(e.target.checked)}
                   className="w-5 h-5 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500"
                 />
-                <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="rightAlign" className="text-sm font-medium text-zinc-300">
                   יישור לימין (RTL)
                 </label>
               </div>
 
               {isLoadingContent ? (
-                <div className="flex flex-col items-center justify-center py-12 text-cyan-600 dark:text-cyan-400">
+                <div className="flex flex-col items-center justify-center py-12 text-cyan-400">
                   <Loader2 className="w-8 h-8 animate-spin mb-4" />
                   <p>טוען תוכן...</p>
                 </div>
@@ -321,18 +321,18 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                 <div className="space-y-12">
                   {/* Overview Section */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
-                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">סילבוס / סקירה</h3>
-                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setOverviewFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setOverviewFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-100">סילבוס / סקירה</h3>
+                      <div className="flex items-center gap-1 bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setOverviewFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'md' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setOverviewFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${overviewFileType === 'pdf' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
                     {overviewFileType === 'pdf' ? (
-                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                      <div className="p-6 bg-amber-900/30 border border-amber-800 rounded-xl text-amber-200">
                         <p className="font-bold mb-2">סילבוס זה הוא קובץ PDF.</p>
                         {course?.overviewID && overviewUrl && (
-                          <a href={overviewUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                          <a href={overviewUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">
@@ -340,7 +340,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                             בחר קובץ PDF חדש
                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewOverviewFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newOverviewFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newOverviewFile.name}</p>}
+                          {newOverviewFile && <p className="mt-2 text-sm text-zinc-400">{newOverviewFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -349,11 +349,11 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           rows={8}
                           value={overviewContent}
                           onChange={(e) => setOverviewContent(e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
                           placeholder="# סילבוס הקורס..."
                         />
-                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-700 bg-zinc-800 h-[200px] overflow-y-auto prose prose-invert max-w-none text-sm">
                           {overviewContent ? <NestedMarkdown content={overviewContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
@@ -362,18 +362,18 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
 
                   {/* Definitions Section */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
-                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">הגדרות</h3>
-                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setDefinitionsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setDefinitionsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-100">הגדרות</h3>
+                      <div className="flex items-center gap-1 bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setDefinitionsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'md' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setDefinitionsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${definitionsFileType === 'pdf' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
                     {definitionsFileType === 'pdf' ? (
-                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                      <div className="p-6 bg-amber-900/30 border border-amber-800 rounded-xl text-amber-200">
                         <p className="font-bold mb-2">דף הגדרות זה הוא קובץ PDF.</p>
                         {course?.definitionsID && definitionsUrl && (
-                          <a href={definitionsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                          <a href={definitionsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">
@@ -381,7 +381,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                             בחר קובץ PDF חדש
                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewDefinitionsFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newDefinitionsFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newDefinitionsFile.name}</p>}
+                          {newDefinitionsFile && <p className="mt-2 text-sm text-zinc-400">{newDefinitionsFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -390,11 +390,11 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           rows={8}
                           value={definitionsContent}
                           onChange={(e) => setDefinitionsContent(e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
                           placeholder="## הגדרות..."
                         />
-                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-700 bg-zinc-800 h-[200px] overflow-y-auto prose prose-invert max-w-none text-sm">
                           {definitionsContent ? <NestedMarkdown content={definitionsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
@@ -403,18 +403,18 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
 
                   {/* Claims Section */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2">
-                      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">משפטים</h3>
-                      <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-                        <button type="button" onClick={() => setClaimsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'md' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
-                        <button type="button" onClick={() => setClaimsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'pdf' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                      <h3 className="text-lg font-bold text-zinc-100">משפטים</h3>
+                      <div className="flex items-center gap-1 bg-zinc-800 p-1 rounded-lg">
+                        <button type="button" onClick={() => setClaimsFileType('md')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'md' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>Markdown</button>
+                        <button type="button" onClick={() => setClaimsFileType('pdf')} className={`px-3 py-1 rounded-md text-xs transition-colors ${claimsFileType === 'pdf' ? 'bg-zinc-700 shadow-sm text-zinc-100' : 'text-zinc-500'}`}>PDF</button>
                       </div>
                     </div>
                     {claimsFileType === 'pdf' ? (
-                      <div className="p-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200">
+                      <div className="p-6 bg-amber-900/30 border border-amber-800 rounded-xl text-amber-200">
                         <p className="font-bold mb-2">דף משפטים זה הוא קובץ PDF.</p>
                         {course?.claimsID && claimsUrl && (
-                          <a href={claimsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
+                          <a href={claimsUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline mb-4 block">הורד קובץ PDF קיים</a>
                         )}
                         <p>כדי לעדכן אותו, יש להעלות קובץ PDF חדש.</p>
                         <div className="mt-4">
@@ -422,7 +422,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                             בחר קובץ PDF חדש
                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setNewClaimsFile(e.target.files?.[0] || null)} />
                           </label>
-                          {newClaimsFile && <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{newClaimsFile.name}</p>}
+                          {newClaimsFile && <p className="mt-2 text-sm text-zinc-400">{newClaimsFile.name}</p>}
                         </div>
                       </div>
                     ) : (
@@ -431,11 +431,11 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                           rows={8}
                           value={claimsContent}
                           onChange={(e) => setClaimsContent(e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
+                          className={`w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all font-mono text-sm resize-none ${rightAlign ? 'text-right' : 'text-left'}`}
                           dir={rightAlign ? 'rtl' : 'ltr'}
                           placeholder="## משפטים חשובים..."
                         />
-                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 h-[200px] overflow-y-auto prose dark:prose-invert max-w-none text-sm">
+                        <div className="w-full px-6 py-4 rounded-xl border border-zinc-700 bg-zinc-800 h-[200px] overflow-y-auto prose prose-invert max-w-none text-sm">
                           {claimsContent ? <NestedMarkdown content={claimsContent} rightAlign={rightAlign} /> : <p className="text-zinc-400 italic text-center mt-10">אין תוכן להצגה</p>}
                         </div>
                       </div>
@@ -457,7 +457,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-6 py-2.5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors ml-4"
+                    className="px-6 py-2.5 text-zinc-400 hover:bg-zinc-800 rounded-xl transition-colors ml-4"
                   >
                     ביטול
                   </button>

@@ -44,7 +44,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
 
   return (
     <div ref={containerRef} className="flex flex-col items-center w-full max-w-4xl mx-auto">
-      <div className="w-full flex flex-col items-center gap-6 p-4 sm:p-8 bg-zinc-200/30 dark:bg-zinc-950/30 rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
+      <div className="w-full flex flex-col items-center gap-6 p-4 sm:p-8 bg-zinc-950/30 rounded-[2.5rem] border border-zinc-800/50 shadow-inner">
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -55,7 +55,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
             </div>
           }
           error={
-            <div className="p-12 text-red-500 text-center bg-red-50 dark:bg-red-900/10 rounded-3xl border border-red-200 dark:border-red-900/20">
+            <div className="p-12 text-red-500 text-center bg-red-900/10 rounded-3xl border border-red-900/20">
               <p className="font-bold mb-2">שגיאה בטעינת הקובץ</p>
               <p className="text-sm opacity-80">וודא שהקישור תקין או נסה להוריד את הקובץ ישירות.</p>
             </div>
@@ -63,7 +63,7 @@ export const PdfTextRenderer: React.FC<PdfTextRendererProps> = ({ url }) => {
           className="flex flex-col items-center justify-center gap-8 w-full"
         >
           {numPages && Array.from(new Array(numPages), (el, index) => (
-            <div key={`page_${index + 1}`} className="shadow-2xl rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white">
+            <div key={`page_${index + 1}`} className="shadow-2xl rounded-xl overflow-hidden border border-zinc-800 bg-white">
               <Page 
                 pageNumber={index + 1} 
                 width={containerWidth}

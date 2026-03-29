@@ -134,7 +134,7 @@ const Home = () => {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-12 py-4 border border-zinc-200 dark:border-zinc-700/50 rounded-2xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-lg transition-all shadow-sm group-hover:shadow-md text-zinc-900 dark:text-zinc-100"
+            className="block w-full pl-10 pr-12 py-4 border border-zinc-700/50 rounded-2xl leading-5 bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-lg transition-all shadow-sm group-hover:shadow-md text-zinc-100"
             placeholder="חיפוש קורסים וסיכומים..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -163,7 +163,7 @@ const Home = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-4 bg-red-50 dark:bg-red-900/30 backdrop-blur-md border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400"
+              className="p-4 bg-red-900/30 backdrop-blur-md border border-red-800 rounded-xl text-red-400"
             >
               <p className="font-bold mb-1">שגיאת התחברות ל-Appwrite:</p>
               <p className="font-mono text-sm" dir="ltr">{errorMsg}</p>
@@ -172,7 +172,7 @@ const Home = () => {
 
           {user && (
             <section>
-              <h2 className="text-2xl font-bold mb-6 text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <h2 className="text-2xl font-bold mb-6 text-zinc-100 flex items-center gap-2">
                 <BookOpen className="w-6 h-6 text-cyan-500" />
                 הקורסים שלי
               </h2>
@@ -186,16 +186,16 @@ const Home = () => {
                   courses.filter(c => enrolledCourseIds.includes(c.$id)).map((course) => (
                     <motion.div key={course.$id} variants={itemVariants}>
                       <div 
-                        className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
+                        className="block group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <Link to={`/course/${course.$id}`}>
-                            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                            <h3 className="text-xl font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
                               {course.name}
                             </h3>
                           </Link>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-2 py-1 rounded-md">
+                            <span className="text-xs font-mono bg-cyan-900/50 text-cyan-300 px-2 py-1 rounded-md">
                               {course.number}
                             </span>
                             <button onClick={() => toggleEnrollment(course.$id, enrollments[course.$id] || null)} className="text-emerald-500 hover:text-emerald-600">
@@ -203,14 +203,14 @@ const Home = () => {
                             </button>
                           </div>
                         </div>
-                        <p className="text-cyan-600/70 dark:text-cyan-300/70 text-sm line-clamp-2">
+                        <p className="text-cyan-300/70 text-sm line-clamp-2">
                           לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                         </p>
                       </div>
                     </motion.div>
                   ))
                 ) : (
-                  <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm opacity-60 col-span-full">
+                  <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm opacity-60 col-span-full">
                     <p className="text-zinc-400 text-sm">אין קורסים רשומים עדיין.</p>
                   </motion.div>
                 )}
@@ -219,7 +219,7 @@ const Home = () => {
           )}
 
           <section>
-            <h2 className="text-2xl font-bold mb-6 text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <h2 className="text-2xl font-bold mb-6 text-zinc-100 flex items-center gap-2">
               <BookOpen className="w-6 h-6 text-zinc-500" />
               כל הקורסים
             </h2>
@@ -232,16 +232,16 @@ const Home = () => {
               {filteredCourses.map((course) => (
                 <motion.div key={course.$id} variants={itemVariants}>
                   <div 
-                    className="block group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
+                    className="block group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <Link to={`/course/${course.$id}`}>
-                        <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                        <h3 className="text-xl font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
                           {course.name}
                         </h3>
                       </Link>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">
+                        <span className="text-xs font-mono bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md">
                           {course.number}
                         </span>
                         <button onClick={() => toggleEnrollment(course.$id, null)} className="text-cyan-500 hover:text-cyan-600">
@@ -249,7 +249,7 @@ const Home = () => {
                         </button>
                       </div>
                     </div>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2">
+                    <p className="text-zinc-400 text-sm line-clamp-2">
                       לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                     </p>
                   </div>

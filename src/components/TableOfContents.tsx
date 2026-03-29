@@ -45,10 +45,10 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ items }) => {
       } hidden lg:block`} 
       dir="rtl"
     >
-      <div className="relative p-4 rounded-3xl bg-zinc-200/50 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800/50 shadow-sm overflow-hidden min-h-[48px]">
+      <div className="relative p-4 rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/50 shadow-sm overflow-hidden min-h-[48px]">
         <button
           onClick={() => setIsMinimized(!isMinimized)}
-          className="absolute top-3 left-2 p-1.5 rounded-xl hover:bg-zinc-300 dark:hover:bg-zinc-800 transition-colors z-10 text-zinc-500"
+          className="absolute top-3 left-2 p-1.5 rounded-xl hover:bg-zinc-800 transition-colors z-10 text-zinc-500"
           title={isMinimized ? "הצג תוכן עניינים" : "מזער תוכן עניינים"}
         >
           {isMinimized ? <List className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -77,8 +77,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({ items }) => {
                       }}
                       className={`block text-sm transition-all duration-200 hover:text-cyan-500 ${
                         activeId === item.id 
-                          ? 'text-cyan-600 dark:text-cyan-400 font-bold translate-x-[-4px]' 
-                          : 'text-zinc-500 dark:text-zinc-400'
+                          ? 'text-cyan-400 font-bold translate-x-[-4px]' 
+                          : 'text-zinc-400'
                       }`}
                     >
                       <div className="flex items-center gap-2">

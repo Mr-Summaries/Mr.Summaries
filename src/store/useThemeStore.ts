@@ -10,25 +10,22 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      theme: 'light',
-      setTheme: (theme) => {
-        console.log('Setting theme:', theme);
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-        set({ theme });
+      theme: 'dark',
+      setTheme: () => {
+        document.documentElement.classList.add('dark');
+        set({ theme: 'dark' });
       },
-      toggleTheme: () => set((state) => {
-        const newTheme = state.theme === 'light' ? 'dark' : 'light';
-        console.log('Toggling theme to:', newTheme);
-        document.documentElement.classList.toggle('dark', newTheme === 'dark');
-        return { theme: newTheme };
-      }),
+      toggleTheme: () => {
+        document.documentElement.classList.add('dark');
+        set({ theme: 'dark' });
+      },
     }),
     {
       name: 'theme-storage',
       onRehydrateStorage: () => (state) => {
+        document.documentElement.classList.add('dark');
         if (state) {
-          console.log('Rehydrated theme:', state.theme);
-          document.documentElement.classList.toggle('dark', state.theme === 'dark');
+          state.theme = 'dark';
         }
       },
     }

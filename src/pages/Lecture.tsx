@@ -5,7 +5,7 @@ import { ArrowRight, Edit2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
-import { LectureModal } from '../components/LectureModal';
+import { ContentModal } from '../components/ContentModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
 const Lecture = () => {
@@ -15,7 +15,7 @@ const Lecture = () => {
   const [content, setContent] = useState<string>('');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchLecture = useCallback(async () => {
     try {
@@ -100,24 +100,24 @@ const Lecture = () => {
       <div className="flex justify-between items-start mb-8">
         <div>
           {courseId ? (
-            <Link to={`/course/${courseId}?tab=lectures`} className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
+            <Link to={`/course/${courseId}?tab=lectures`} className="inline-flex items-center gap-2 text-cyan-400 hover:underline mb-4">
               <ArrowRight className="w-4 h-4" />
               חזרה להרצאות
             </Link>
           ) : (
-            <Link to="/" className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:underline mb-4">
+            <Link to="/" className="inline-flex items-center gap-2 text-cyan-400 hover:underline mb-4">
               <ArrowRight className="w-4 h-4" />
               חזרה לדף הבית
             </Link>
           )}
-          <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+          <h1 className="text-4xl font-bold text-zinc-50 mb-2">
             {lecture.name}
           </h1>
         </div>
         {isAdmin && (
           <button 
-            onClick={() => setIsLectureModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700 transition-colors"
           >
             <Edit2 className="w-4 h-4" />
             ערוך הרצאה
@@ -134,12 +134,13 @@ const Lecture = () => {
         />
       )}
 
-      <LectureModal 
-        isOpen={isLectureModalOpen} 
-        onClose={() => setIsLectureModalOpen(false)} 
+      <ContentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
         onSave={fetchLecture} 
-        lecture={lecture}
+        item={lecture}
         courseNumber={courseNumber}
+        type="lecture"
       />
     </div>
   );

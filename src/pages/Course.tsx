@@ -6,9 +6,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'motion/react';
 import { NestedMarkdown } from '../components/NestedMarkdown';
 import { CourseModal } from '../components/CourseModal';
-import { SummaryModal } from '../components/SummaryModal';
-import { LectureModal } from '../components/LectureModal';
-import { ExampleModal } from '../components/ExampleModal';
+import { ContentModal } from '../components/ContentModal';
 import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
 
@@ -24,9 +22,8 @@ const Course = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
-  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
-  const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
-  const [isExampleModalOpen, setIsExampleModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'summary' | 'lecture' | 'example'>('summary');
   const [isAddPageModalOpen, setIsAddPageModalOpen] = useState(false);
   const [summaries, setSummaries] = useState<any[]>([]);
   const [lectures, setLectures] = useState<any[]>([]);
@@ -247,10 +244,10 @@ const Course = () => {
     <div className="max-w-5xl mx-auto px-4" dir="rtl">
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+          <h1 className="text-4xl font-bold text-zinc-100 mb-2">
             {course.name}
           </h1>
-          <span className="inline-block bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
+          <span className="inline-block bg-cyan-900/50 text-cyan-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
             {course.number}
           </span>
         </div>
@@ -259,8 +256,8 @@ const Course = () => {
             onClick={toggleEnrollment}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
               isEnrolled 
-                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' 
-                : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900/50'
+                ? 'bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50' 
+                : 'bg-cyan-900/30 text-cyan-400 hover:bg-cyan-900/50'
             }`}
           >
             {isEnrolled ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
@@ -277,7 +274,7 @@ const Course = () => {
               </button>
               <button 
                 onClick={() => setIsCourseModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700 transition-colors"
               >
                 <Edit2 className="w-4 h-4" />
                 ערוך קורס
@@ -287,7 +284,7 @@ const Course = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-4">
         {tabs.filter(t => t.show).map(tab => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -299,7 +296,7 @@ const Course = () => {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 isActive 
                   ? 'bg-cyan-600 text-white shadow-sm' 
-                  : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  : 'text-zinc-400 hover:bg-zinc-800'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -318,7 +315,7 @@ const Course = () => {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
+                className="block w-full pl-10 pr-12 py-3 border border-zinc-700/50 rounded-xl leading-5 bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-100"
                 placeholder="חיפוש סיכומים..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -331,18 +328,18 @@ const Course = () => {
               <Link 
                 key={summary.$id} 
                 to={`/summary/${summary.$id}`}
-                className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
+                className="group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
               >
-                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
+                <div className="p-3 bg-cyan-900/30 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform">
                   <FileText className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
                   {summary.name}
                 </h3>
               </Link>
             ))}
             {filteredSummaries.length === 0 && (
-              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
+              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-800/50">
                 לא נמצאו סיכומים התואמים את החיפוש.
               </div>
             )}
@@ -357,7 +354,7 @@ const Course = () => {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
+                className="block w-full pl-10 pr-12 py-3 border border-zinc-700/50 rounded-xl leading-5 bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-100"
                 placeholder="חיפוש הרצאות..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -370,18 +367,18 @@ const Course = () => {
               <Link 
                 key={lecture.$id} 
                 to={`/lecture/${lecture.$id}`}
-                className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
+                className="group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
               >
-                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
+                <div className="p-3 bg-cyan-900/30 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform">
                   <List className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
                   {lecture.name}
                 </h3>
               </Link>
             ))}
             {filteredLectures.length === 0 && (
-              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
+              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-800/50">
                 לא נמצאו הרצאות התואמים את החיפוש.
               </div>
             )}
@@ -396,7 +393,7 @@ const Course = () => {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-12 py-3 border border-zinc-200 dark:border-zinc-700/50 rounded-xl leading-5 bg-zinc-200/80 dark:bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-900 dark:text-zinc-100"
+                className="block w-full pl-10 pr-12 py-3 border border-zinc-700/50 rounded-xl leading-5 bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-100"
                 placeholder="חיפוש דוגמאות..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -409,18 +406,18 @@ const Course = () => {
               <Link 
                 key={example.$id} 
                 to={`/example/${example.$id}`}
-                className="group p-6 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/40 backdrop-blur-md border border-zinc-200 dark:border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
+                className="group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
               >
-                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform">
+                <div className="p-3 bg-cyan-900/30 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform">
                   <List className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
                   {example.name}
                 </h3>
               </Link>
             ))}
             {filteredExamples.length === 0 && (
-              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-200/60 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800/50">
+              <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-800/50">
                 לא נמצאו דוגמאות התואמים את החיפוש.
               </div>
             )}
@@ -439,31 +436,22 @@ const Course = () => {
         course={course}
       />
 
-      <SummaryModal 
-        isOpen={isSummaryModalOpen} 
-        onClose={() => setIsSummaryModalOpen(false)} 
-        onSave={fetchSummaries} 
-        onDelete={onDeleteSummary}
+      <ContentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSave={() => {
+          if (modalType === 'summary') fetchSummaries();
+          if (modalType === 'lecture') fetchLectures();
+          if (modalType === 'example') fetchExamples();
+        }} 
+        onDelete={() => {
+          if (modalType === 'summary') onDeleteSummary();
+          if (modalType === 'lecture') onDeleteLecture();
+          if (modalType === 'example') onDeleteExample();
+        }}
         courseId={id}
         courseNumber={course.number}
-      />
-
-      <LectureModal 
-        isOpen={isLectureModalOpen} 
-        onClose={() => setIsLectureModalOpen(false)} 
-        onSave={fetchLectures} 
-        onDelete={onDeleteLecture}
-        courseId={id}
-        courseNumber={course.number}
-      />
-
-      <ExampleModal 
-        isOpen={isExampleModalOpen} 
-        onClose={() => setIsExampleModalOpen(false)} 
-        onSave={fetchExamples} 
-        onDelete={onDeleteExample}
-        courseId={id}
-        courseNumber={course.number}
+        type={modalType}
       />
 
       <AddPageModal 
@@ -471,9 +459,8 @@ const Course = () => {
         onClose={() => setIsAddPageModalOpen(false)} 
         onSelect={(type) => {
           setIsAddPageModalOpen(false);
-          if (type === 'summary') setIsSummaryModalOpen(true);
-          if (type === 'lecture') setIsLectureModalOpen(true);
-          if (type === 'example') setIsExampleModalOpen(true);
+          setModalType(type);
+          setIsModalOpen(true);
         }}
       />
     </div>
