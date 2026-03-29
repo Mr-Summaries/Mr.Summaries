@@ -61,9 +61,13 @@ const Summary = () => {
       } else {
         setContent('לא נמצא תוכן לסיכום זה.');
       }
-    } catch (error) {
-      console.error('Error fetching summary', error);
-      setContent('שגיאה בטעינת התוכן.');
+    } catch (error: any) {
+      if (error.code === 404) {
+        setSummary(null);
+      } else {
+        console.error('Error fetching summary', error);
+        setContent('שגיאה בטעינת התוכן.');
+      }
     } finally {
       setLoading(false);
     }

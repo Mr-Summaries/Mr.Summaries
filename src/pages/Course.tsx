@@ -102,9 +102,13 @@ const Course = () => {
       } else {
         setContent('לא נמצא תוכן.');
       }
-    } catch (error) {
-      console.error('Error fetching course', error);
-      setContent('שגיאה בטעינת התוכן.');
+    } catch (error: any) {
+      if (error.code === 404) {
+        setCourse(null);
+      } else {
+        console.error('Error fetching course', error);
+        setContent('שגיאה בטעינת התוכן.');
+      }
     } finally {
       setLoading(false);
     }

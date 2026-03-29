@@ -59,9 +59,13 @@ const Example = () => {
       } else {
         setContent('לא נמצא תוכן לדוגמה זו.');
       }
-    } catch (error) {
-      console.error('Error fetching example', error);
-      setContent('שגיאה בטעינת התוכן.');
+    } catch (error: any) {
+      if (error.code === 404) {
+        setExample(null);
+      } else {
+        console.error('Error fetching example', error);
+        setContent('שגיאה בטעינת התוכן.');
+      }
     } finally {
       setLoading(false);
     }

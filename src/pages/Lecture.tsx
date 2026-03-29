@@ -59,9 +59,13 @@ const Lecture = () => {
       } else {
         setContent('לא נמצא תוכן להרצאה זו.');
       }
-    } catch (error) {
-      console.error('Error fetching lecture', error);
-      setContent('שגיאה בטעינת התוכן.');
+    } catch (error: any) {
+      if (error.code === 404) {
+        setLecture(null);
+      } else {
+        console.error('Error fetching lecture', error);
+        setContent('שגיאה בטעינת התוכן.');
+      }
     } finally {
       setLoading(false);
     }

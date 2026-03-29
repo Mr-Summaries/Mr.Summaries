@@ -22,8 +22,12 @@ const Summaries = () => {
 
       const summariesRes = await api.getSummaries(id!);
       setSummaries(summariesRes.documents);
-    } catch (error) {
-      console.error('Error fetching summaries', error);
+    } catch (error: any) {
+      if (error.code === 404) {
+        setCourse(null);
+      } else {
+        console.error('Error fetching summaries', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -41,6 +45,10 @@ const Summaries = () => {
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">טוען...</div>;
+  }
+
+  if (!course) {
+    return <div className="text-center text-red-500 py-12">קורס לא נמצא</div>;
   }
 
   return (
