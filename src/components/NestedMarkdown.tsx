@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { motion } from 'motion/react';
 import 'katex/dist/katex.min.css';
+import remarkMergeSvg from './remarkMergeSvg';
 
 interface SectionNode {
   id: string;
@@ -31,11 +32,21 @@ const parseSections = (text: string): SectionNode[] => {
   const rootNodes: SectionNode[] = [];
   const stack: SectionNode[] = [];
 
+  const usedIds = new Set<string>();
+
   rawSections.forEach((content, idx) => {
     const match = content.match(/^(#{1,6})\s+(.*)/);
     const level = match ? match[1].length : 6;
     const title = match ? match[2].trim() : `Section ${idx + 1}`;
-    const id = slugify(title) || `sec-${idx}`;
+    let baseId = slugify(title) || `sec-${idx}`;
+    let id = baseId;
+    let counter = 1;
+    
+    while (usedIds.has(id)) {
+      id = `${baseId}-${counter}`;
+      counter++;
+    }
+    usedIds.add(id);
     
     const node: SectionNode = { id, title, content, level, children: [] };
 
@@ -56,10 +67,37 @@ const parseSections = (text: string): SectionNode[] => {
 };
 
 import { Mermaid } from './Mermaid';
-import { SvgRenderer } from './SvgRenderer';
 import remarkMark, { markHandler } from './remarkMark';
 
 const proseClasses = "prose prose-zinc dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-cyan-700 dark:prose-h1:text-cyan-400 prose-h2:text-teal-700 dark:prose-h2:text-teal-400 prose-h3:text-emerald-600 dark:prose-h3:text-emerald-400 prose-h4:text-amber-600 dark:prose-h4:text-amber-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-emerald-700 dark:prose-strong:text-emerald-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-800 dark:prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-700 prose-blockquote:border-s-4 prose-blockquote:border-cyan-500 prose-blockquote:bg-cyan-50 dark:prose-blockquote:bg-cyan-900/20 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-e-lg prose-blockquote:text-cyan-900 dark:prose-blockquote:text-cyan-200 prose-li:marker:text-cyan-500 prose-img:rounded-xl prose-img:shadow-md";
+
+const markdownComponents = {
+  pre({ children, node, ...props }: any) {
+    // For mermaid and svg blocks the `code` component returns its own
+    // styled component; bypass the `<pre>` wrapper so its
+    // prose-pre dark background doesn't bleed through.
+    const codeClass: string =
+      node?.children?.[0]?.properties?.className?.[0] ?? '';
+    if (/^language-(mermaid|svg)$/.test(codeClass)) {
+      return <>{children}</>;
+    }
+    return <pre {...props}>{children}</pre>;
+  },
+  code({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match && match[1] === 'mermaid') {
+      return <Mermaid chart={String(children).replace(/\n$/, '')} />;
+    }
+    if (!inline && match && match[1] === 'svg') {
+      return <span dangerouslySetInnerHTML={{ __html: String(children).replace(/\n$/, '') }} className="svg-renderer" />;
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  }
+};
 
 const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index: number }) => {
   let containerClasses = '';
@@ -84,36 +122,13 @@ const SectionRenderer = React.memo(({ node, index }: { node: SectionNode, index:
     >
       <div className={proseClasses}>
         <ReactMarkdown 
-          remarkPlugins={[remarkGfm, remarkMath, remarkBreaks, remarkMark]} 
-          rehypePlugins={[rehypeRaw, [rehypeKatex, { strict: false }]]}
+          remarkPlugins={[remarkGfm, remarkMath, remarkBreaks, remarkMark, remarkMergeSvg]} 
+          rehypePlugins={[
+            rehypeRaw,
+            [rehypeKatex, { strict: false }]
+          ]}
           remarkRehypeOptions={{ handlers: { mark: markHandler } as Record<string, unknown> }}
-          components={{
-            pre({ children, node, ...props }: any) {
-              // For svg/mermaid blocks the `code` component returns its own
-              // styled component; bypass the `<pre>` wrapper so its
-              // prose-pre dark background doesn't bleed through.
-              const codeClass: string =
-                node?.children?.[0]?.properties?.className?.[0] ?? '';
-              if (/^language-(svg|mermaid)$/.test(codeClass)) {
-                return <>{children}</>;
-              }
-              return <pre {...props}>{children}</pre>;
-            },
-            code({ node, inline, className, children, ...props }: any) {
-              const match = /language-(\w+)/.exec(className || '');
-              if (!inline && match && match[1] === 'mermaid') {
-                return <Mermaid chart={String(children).replace(/\n$/, '')} />;
-              }
-              if (!inline && match && match[1] === 'svg') {
-                return <SvgRenderer>{String(children).replace(/\n$/, '')}</SvgRenderer>;
-              }
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            }
-          }}
+          components={markdownComponents}
         >
           {node.content}
         </ReactMarkdown>
