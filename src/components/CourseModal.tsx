@@ -26,18 +26,25 @@ const fetchFileContent = async (fileId: string) => {
   }
 };
 
-const uploadContent = async (content: string, filename: string, fileId: string) => {
-  if (!content.trim()) return '';
-  const file = new File([content], filename, { type: 'text/markdown' });
-  
-  try {
-    // Try to delete existing file with same ID to allow "overwrite"
-    await api.deleteFile(fileId);
-  } catch (e) {
-    // Ignore if file doesn't exist
+const uploadContent = async (content: string, filename: string, oldFileId?: string) => {
+  if (!content.trim()) {
+    if (oldFileId) {
+      try {
+        await api.deleteFile(oldFileId);
+      } catch (e) {}
+    }
+    return '';
   }
 
-  const res = await api.createFile(file, fileId);
+  const file = new File([content], filename, { type: 'text/markdown' });
+  const res = await api.createFile(file);
+  
+  if (oldFileId) {
+    try {
+      await api.deleteFile(oldFileId);
+    } catch (e) {}
+  }
+
   return res.$id;
 };
 
@@ -175,17 +182,19 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       const uploadFile = async (contentOrFile: string | File, id: string, oldFileId: string, type: 'md' | 'pdf') => {
         if (type === 'pdf') {
           if (contentOrFile instanceof File) {
-            try {
-              await api.deleteFile(oldFileId);
-            } catch (e) {}
-            const res = await api.createFile(contentOrFile, id);
+            const res = await api.createFile(contentOrFile);
+            if (oldFileId) {
+              try {
+                await api.deleteFile(oldFileId);
+              } catch (e) {}
+            }
             return res.$id;
           }
           return oldFileId;
         } else {
           const content = contentOrFile instanceof File ? await contentOrFile.text() : contentOrFile;
           const filename = `${id}.${type}`;
-          return await uploadContent(content, filename, id);
+          return await uploadContent(content, filename, oldFileId);
         }
       };
 

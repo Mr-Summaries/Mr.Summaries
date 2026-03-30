@@ -38,9 +38,9 @@ const Summaries = () => {
   }, [fetchSummaries]);
 
   const filteredSummaries = useMemo(() => {
-    return summaries.filter(s => 
-      s.name.includes(deferredSearch)
-    );
+    return summaries
+      .filter(s => s.name.includes(deferredSearch))
+      .sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [summaries, deferredSearch]);
 
   if (loading) {

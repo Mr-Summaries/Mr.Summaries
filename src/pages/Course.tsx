@@ -140,23 +140,23 @@ const Course = () => {
 
   const filteredSummaries = useMemo(() => {
     const uniqueSummaries = Array.from(new Map(summaries.map(s => [s.$id, s])).values());
-    return uniqueSummaries.filter(s => 
-      s.name.includes(deferredSearch)
-    );
+    return uniqueSummaries
+      .filter(s => s.name.includes(deferredSearch))
+      .sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [summaries, deferredSearch]);
 
   const filteredLectures = useMemo(() => {
     const uniqueLectures = Array.from(new Map(lectures.map(l => [l.$id, l])).values());
-    return uniqueLectures.filter(l => 
-      l.name.includes(deferredSearch)
-    );
+    return uniqueLectures
+      .filter(l => l.name.includes(deferredSearch))
+      .sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [lectures, deferredSearch]);
 
   const filteredExamples = useMemo(() => {
     const uniqueExamples = Array.from(new Map(examples.map(e => [e.$id, e])).values());
-    return uniqueExamples.filter(e => 
-      e.name.includes(deferredSearch)
-    );
+    return uniqueExamples
+      .filter(e => e.name.includes(deferredSearch))
+      .sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [examples, deferredSearch]);
 
   useEffect(() => {
