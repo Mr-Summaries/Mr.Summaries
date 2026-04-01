@@ -68,6 +68,8 @@ const parseSections = (text: string): SectionNode[] => {
 
 import { Mermaid } from './Mermaid';
 import remarkMark, { markHandler } from './remarkMark';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const proseClasses = "prose prose-zinc prose-invert max-w-none prose-headings:font-bold prose-h1:text-cyan-400 prose-h2:text-teal-400 prose-h3:text-emerald-400 prose-h4:text-amber-400 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-emerald-400 prose-code:text-pink-400 prose-code:bg-pink-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-700 prose-blockquote:border-s-4 prose-blockquote:border-cyan-500 prose-blockquote:bg-cyan-900/20 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-e-lg prose-blockquote:text-cyan-200 prose-li:marker:text-cyan-500 prose-img:rounded-xl prose-img:shadow-md";
 
@@ -81,6 +83,9 @@ const markdownComponents = {
     if (/^language-(mermaid|svg)$/.test(codeClass)) {
       return <>{children}</>;
     }
+    if (codeClass.startsWith('language-')) {
+      return <>{children}</>;
+    }
     return <pre {...props}>{children}</pre>;
   },
   code({ node, inline, className, children, ...props }: any) {
@@ -90,6 +95,20 @@ const markdownComponents = {
     }
     if (!inline && match && match[1] === 'svg') {
       return <span dangerouslySetInnerHTML={{ __html: String(children).replace(/\n$/, '') }} className="svg-renderer" />;
+    }
+    if (!inline && match) {
+      return (
+        <SyntaxHighlighter
+          {...props}
+          style={vscDarkPlus}
+          language={match[1]}
+          PreTag="div"
+          CodeTag="span"
+          className="rounded-md !my-4 !bg-zinc-900 border border-zinc-700"
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      );
     }
     return (
       <code className={className} {...props}>
