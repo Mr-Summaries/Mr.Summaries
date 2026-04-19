@@ -157,11 +157,10 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
     setIsSaving(true);
     setError('');
 
+    let docSaved = false;
     try {
       const courseNum = courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '') || 'unknown';
       const itemName = name.trim().replace(/[^a-zA-Z0-9._-]/g, '');
-      const isNameChanged = item && itemName !== item.name?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
-      const isCourseNumChanged = item && courseNum !== courseNumber?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       
       let finalFileId = item?.fileID || '';
       
@@ -189,7 +188,7 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
           const id = `${type}-${itemName}-${courseNum}`.toLowerCase();
           finalFileId = await uploadFile(newFile, id, finalFileId, 'pdf');
         }
-      } else if (content !== origContent || isNameChanged || isCourseNumChanged) {
+      } else if (content !== origContent) {
         const id = `${type}-${itemName}-${courseNum}`.toLowerCase();
         finalFileId = await uploadFile(content, id, finalFileId, fileType);
       }
@@ -214,11 +213,18 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
         else if (type === 'lecture') await api.createLecture(docId, data);
         else if (type === 'practice') await api.createPractice(docId, data);
       }
+      docSaved = true;
       onSave();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || `שגיאה בשמירת ה${labels.title}`);
+      if (docSaved) {
+        // The document was saved successfully; a post-save error should not block closing.
+        onSave();
+        onClose();
+      } else {
+        setError(err.message || `שגיאה בשמירת ה${labels.title}`);
+      }
     } finally {
       setIsSaving(false);
     }
