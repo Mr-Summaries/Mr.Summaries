@@ -247,9 +247,21 @@ const Course = () => {
           <h1 className="text-4xl font-bold text-zinc-100 mb-2">
             {course.name}
           </h1>
-          <span className="inline-block bg-cyan-900/50 text-cyan-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
-            {course.number}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-block bg-cyan-900/50 text-cyan-300 px-3 py-1 rounded-full text-sm font-mono font-medium">
+              {course.number}
+            </span>
+            {course.year && (
+              <span className="inline-block bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full text-sm font-medium">
+                {course.year}
+              </span>
+            )}
+            {course.semester && (
+              <span className="inline-block bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full text-sm font-medium">
+                סמסטר {course.semester}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-3">
           <button 

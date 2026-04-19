@@ -264,6 +264,7 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
                 <input
                   type="text"
                   required
+                  maxLength={100}
                   disabled={isLoadingContent}
                   value={name}
                   onChange={(e) => setName(e.target.value)}

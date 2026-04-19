@@ -203,6 +203,20 @@ const Home = () => {
                             </button>
                           </div>
                         </div>
+                        {(course.year || course.semester) && (
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            {course.year && (
+                              <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
+                                {course.year}
+                              </span>
+                            )}
+                            {course.semester && (
+                              <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
+                                סמסטר {course.semester}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <p className="text-cyan-300/70 text-sm line-clamp-2">
                           לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                         </p>
@@ -249,6 +263,20 @@ const Home = () => {
                         </button>
                       </div>
                     </div>
+                    {(course.year || course.semester) && (
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        {course.year && (
+                          <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
+                            {course.year}
+                          </span>
+                        )}
+                        {course.semester && (
+                          <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
+                            סמסטר {course.semester}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-zinc-400 text-sm line-clamp-2">
                       לחץ לצפייה בסילבוס, סיכומים, הגדרות ומשפטים.
                     </p>

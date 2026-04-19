@@ -51,6 +51,8 @@ const uploadContent = async (content: string, filename: string, oldFileId?: stri
 export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onClose, onSave, course }) => {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
+  const [year, setYear] = useState<number | ''>('');
+  const [semester, setSemester] = useState('');
   const [rightAlign, setRightAlign] = useState(false);
   const [overviewContent, setOverviewContent] = useState('');
   const [definitionsContent, setDefinitionsContent] = useState('');
@@ -105,6 +107,8 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       if (course) {
         setName(course.name || '');
         setNumber(course.number || '');
+        setYear(course.year ?? '');
+        setSemester(course.semester || '');
         setRightAlign(course.rightAlign || false);
         
         const loadContents = async () => {
@@ -150,6 +154,8 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
       } else {
         setName('');
         setNumber('');
+        setYear('');
+        setSemester('');
         setRightAlign(false);
         setOverviewContent('');
         setDefinitionsContent('');
@@ -222,7 +228,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         finalClId = await uploadFile(claimsContent, id, finalClId, claimsFileType);
       }
 
-      const data = {
+      const data: Record<string, any> = {
         name,
         number: courseNum,
         rightAlign,
@@ -230,6 +236,9 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         definitionsID: finalDefId,
         claimsID: finalClId
       };
+
+      if (year !== '') data.year = year;
+      if (semester.trim()) data.semester = semester.trim();
 
       if (course) {
         await api.updateCourse(course.$id, data);
@@ -289,6 +298,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     disabled={isLoadingContent}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -304,6 +314,31 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     value={number}
                     onChange={(e) => setNumber(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">שנה</label>
+                  <input
+                    type="number"
+                    disabled={isLoadingContent}
+                    value={year}
+                    onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                    placeholder="לדוגמה: 2025"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">סמסטר</label>
+                  <input
+                    type="text"
+                    disabled={isLoadingContent}
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
+                    placeholder="לדוגמה: א / ב / קיץ"
                   />
                 </div>
               </div>
