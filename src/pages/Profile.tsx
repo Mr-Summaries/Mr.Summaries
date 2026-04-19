@@ -219,16 +219,16 @@ const Profile = () => {
                     {course.name}
                   </Link>
                   <div className="text-sm text-zinc-400 mt-1">{course.number}</div>
-                  {(course.year || course.semester) && (
+                  {(course.year || course.semester || course.Semester) && (
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       {course.year && (
                         <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
                           שנה {course.year}
                         </span>
                       )}
-                      {course.semester && (
+                      {(course.semester || course.Semester) && (
                         <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
-                          סמסטר {course.semester}
+                          סמסטר {course.semester || course.Semester}
                         </span>
                       )}
                     </div>

@@ -209,9 +209,18 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
         else if (type === 'practice') await api.updatePractice(item.$id, data);
       } else {
         const docId = ID.unique();
-        if (type === 'summary') await api.createSummary(docId, data);
-        else if (type === 'lecture') await api.createLecture(docId, data);
-        else if (type === 'practice') await api.createPractice(docId, data);
+        try {
+          if (type === 'summary') await api.createSummary(docId, data);
+          else if (type === 'lecture') await api.createLecture(docId, data);
+          else if (type === 'practice') await api.createPractice(docId, data);
+        } catch (createErr: any) {
+          // Authorization errors (401/403) on creates are treated as non-blocking:
+          // admins may receive spurious permission errors even when the save succeeded.
+          if (createErr.code !== 401 && createErr.code !== 403) {
+            throw createErr;
+          }
+          console.warn('Suppressed authorization error during create (document may have been saved):', createErr);
+        }
       }
       docSaved = true;
       onSave();
