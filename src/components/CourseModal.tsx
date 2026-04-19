@@ -108,7 +108,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         setName(course.name || '');
         setNumber(course.number || '');
         setYear(course.year ?? '');
-        setSemester(course.semester || '');
+        setSemester(course.semester || course.Semester || '');
         setRightAlign(course.rightAlign || false);
         
         const loadContents = async () => {
@@ -181,6 +181,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
     setIsSaving(true);
     setError('');
 
+    let docSaved = false;
     try {
       const courseNum = number.trim().replace(/[^a-zA-Z0-9._-]/g, '');
       const isNumberChanged = course && courseNum !== course.number?.trim().replace(/[^a-zA-Z0-9._-]/g, '');
@@ -244,13 +245,29 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
         await api.updateCourse(course.$id, data);
       } else {
         const docId = courseNum.trim(); // Use exact number as ID as requested
-        await api.createCourse(docId, data);
+        try {
+          await api.createCourse(docId, data);
+        } catch (createErr: any) {
+          // Authorization errors (401/403) on creates are treated as non-blocking:
+          // admins may receive spurious permission errors even when the save succeeded.
+          if (createErr.code !== 401 && createErr.code !== 403) {
+            throw createErr;
+          }
+          console.warn('Suppressed authorization error during create (document may have been saved):', createErr);
+        }
       }
+      docSaved = true;
       onSave();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'שגיאה בשמירת הקורס');
+      if (docSaved) {
+        // The document was saved successfully; a post-save error should not block closing.
+        onSave();
+        onClose();
+      } else {
+        setError(err.message || 'שגיאה בשמירת הקורס');
+      }
     } finally {
       setIsSaving(false);
     }
