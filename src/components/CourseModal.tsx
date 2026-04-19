@@ -325,7 +325,7 @@ export const CourseModal: React.FC<CourseModalProps> = React.memo(({ isOpen, onC
                     type="number"
                     disabled={isLoadingContent}
                     value={year}
-                    onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    onChange={(e) => setYear(e.target.value === '' ? '' : (isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber))}
                     className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 focus:ring-2 focus:ring-cyan-500 outline-none transition-all disabled:opacity-50"
                     placeholder="לדוגמה: 2025"
                   />
