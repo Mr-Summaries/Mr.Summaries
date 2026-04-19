@@ -207,7 +207,7 @@ const Home = () => {
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             {course.year && (
                               <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
-                                {course.year}
+                                שנה {course.year}
                               </span>
                             )}
                             {course.semester && (
@@ -267,7 +267,7 @@ const Home = () => {
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         {course.year && (
                           <span className="text-xs bg-zinc-700/60 text-zinc-300 px-2 py-0.5 rounded-md">
-                            {course.year}
+                            שנה {course.year}
                           </span>
                         )}
                         {course.semester && (

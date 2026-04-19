@@ -253,7 +253,7 @@ const Course = () => {
             </span>
             {course.year && (
               <span className="inline-block bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full text-sm font-medium">
-                {course.year}
+                שנה {course.year}
               </span>
             )}
             {course.semester && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, Loader2 } from 'lucide-react';
+import { ID } from 'appwrite';
 import { api } from '../services/api';
 import { NestedMarkdown } from './NestedMarkdown';
 
@@ -208,7 +209,7 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
         else if (type === 'lecture') await api.updateLecture(item.$id, data);
         else if (type === 'example') await api.updateExample(item.$id, data);
       } else {
-        const docId = `${type}-${itemName}-${courseNum}`.toLowerCase();
+        const docId = ID.unique();
         if (type === 'summary') await api.createSummary(docId, data);
         else if (type === 'lecture') await api.createLecture(docId, data);
         else if (type === 'example') await api.createExample(docId, data);
