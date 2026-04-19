@@ -13,7 +13,7 @@ const COLLECTIONS = {
     courses: 'courses',
     summaries: 'summaries',
     lectures: 'lectures',
-    examples: 'examples',
+    practices: 'practices',
     enrollments: 'enrollments',
 };
 const BUCKET_ID = 'summaries-bk';
@@ -89,17 +89,17 @@ export const api = {
     return await this.getDocuments(COLLECTIONS.lectures, queries);
   },
 
-  async getExamples(courseId: string) {
+  async getPractices(courseId: string) {
     const queries = [Query.equal('courses', courseId)];
-    return await this.getDocuments(COLLECTIONS.examples, queries);
+    return await this.getDocuments(COLLECTIONS.practices, queries);
   },
 
   async getLecture(id: string) {
     return await this.getDocument(COLLECTIONS.lectures, id);
   },
 
-  async getExample(id: string) {
-    return await this.getDocument(COLLECTIONS.examples, id);
+  async getPractice(id: string) {
+    return await this.getDocument(COLLECTIONS.practices, id);
   },
 
   async getFile(fileId: string) {
@@ -150,16 +150,16 @@ export const api = {
     return await this.deleteDocument(COLLECTIONS.lectures, id);
   },
 
-  async createExample(id: string, data: any) {
-    return await this.createDocument(COLLECTIONS.examples, id, data);
+  async createPractice(id: string, data: any) {
+    return await this.createDocument(COLLECTIONS.practices, id, data);
   },
 
-  async updateExample(id: string, data: any) {
-    return await this.updateDocument(COLLECTIONS.examples, id, data);
+  async updatePractice(id: string, data: any) {
+    return await this.updateDocument(COLLECTIONS.practices, id, data);
   },
 
-  async deleteExample(id: string) {
-    return await this.deleteDocument(COLLECTIONS.examples, id);
+  async deletePractice(id: string) {
+    return await this.deleteDocument(COLLECTIONS.practices, id);
   },
 
   async login(email: string, pass: string) {

@@ -13,7 +13,7 @@ interface ContentModalProps {
   item?: any;
   courseId?: string;
   courseNumber?: string;
-  type: 'summary' | 'lecture' | 'example';
+  type: 'summary' | 'lecture' | 'practice';
 }
 
 const fetchFileContent = async (fileId: string) => {
@@ -78,7 +78,7 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
   const typeLabels = {
     summary: { title: 'סיכום', add: 'הוספת סיכום חדש', edit: 'עריכת סיכום', delete: 'מחק סיכום', confirm: 'האם אתה בטוח שברצונך למחוק סיכום זה?' },
     lecture: { title: 'הרצאה', add: 'הוספת הרצאה חדשה', edit: 'עריכת הרצאה', delete: 'מחק הרצאה', confirm: 'האם אתה בטוח שברצונך למחוק הרצאה זו?' },
-    example: { title: 'דוגמה', add: 'הוספת דוגמה חדשה', edit: 'עריכת דוגמה', delete: 'מחק דוגמה', confirm: 'האם אתה בטוח שברצונך למחוק דוגמה זו?' }
+    practice: { title: 'תרגול', add: 'הוספת תרגול חדש', edit: 'עריכת תרגול', delete: 'מחק תרגול', confirm: 'האם אתה בטוח שברצונך למחוק תרגול זה?' }
   };
 
   const labels = typeLabels[type];
@@ -98,7 +98,7 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
       
       if (type === 'summary') await api.deleteSummary(item.$id);
       else if (type === 'lecture') await api.deleteLecture(item.$id);
-      else if (type === 'example') await api.deleteExample(item.$id);
+      else if (type === 'practice') await api.deletePractice(item.$id);
       
       onDelete?.();
       onSave();
@@ -207,12 +207,12 @@ export const ContentModal: React.FC<ContentModalProps> = React.memo(({
       if (item) {
         if (type === 'summary') await api.updateSummary(item.$id, data);
         else if (type === 'lecture') await api.updateLecture(item.$id, data);
-        else if (type === 'example') await api.updateExample(item.$id, data);
+        else if (type === 'practice') await api.updatePractice(item.$id, data);
       } else {
         const docId = ID.unique();
         if (type === 'summary') await api.createSummary(docId, data);
         else if (type === 'lecture') await api.createLecture(docId, data);
-        else if (type === 'example') await api.createExample(docId, data);
+        else if (type === 'practice') await api.createPractice(docId, data);
       }
       onSave();
       onClose();

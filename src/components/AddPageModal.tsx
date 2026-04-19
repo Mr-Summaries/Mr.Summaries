@@ -5,7 +5,7 @@ import { X, FileText, List } from 'lucide-react';
 interface AddPageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (type: 'summary' | 'lecture' | 'example') => void;
+  onSelect: (type: 'summary' | 'lecture' | 'practice') => void;
 }
 
 export const AddPageModal: React.FC<AddPageModalProps> = React.memo(({ isOpen, onClose, onSelect }) => {
@@ -52,11 +52,11 @@ export const AddPageModal: React.FC<AddPageModalProps> = React.memo(({ isOpen, o
                 <span className="font-medium text-zinc-100">הרצאה</span>
               </button>
               <button
-                onClick={() => onSelect('example')}
+                onClick={() => onSelect('practice')}
                 className="w-full flex items-center gap-4 p-4 rounded-xl border border-zinc-700 hover:bg-zinc-800 transition-colors"
               >
                 <List className="w-6 h-6 text-cyan-600" />
-                <span className="font-medium text-zinc-100">דוגמה</span>
+                <span className="font-medium text-zinc-100">תרגול</span>
               </button>
             </div>
           </motion.div>
