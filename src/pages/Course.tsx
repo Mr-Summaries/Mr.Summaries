@@ -23,11 +23,11 @@ const Course = () => {
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'summary' | 'lecture' | 'example'>('summary');
+  const [modalType, setModalType] = useState<'summary' | 'lecture' | 'practice'>('summary');
   const [isAddPageModalOpen, setIsAddPageModalOpen] = useState(false);
   const [summaries, setSummaries] = useState<any[]>([]);
   const [lectures, setLectures] = useState<any[]>([]);
-  const [examples, setExamples] = useState<any[]>([]);
+  const [practices, setPractices] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
 
@@ -129,12 +129,12 @@ const Course = () => {
     }
   }, [id]);
 
-  const fetchExamples = useCallback(async () => {
+  const fetchPractices = useCallback(async () => {
     try {
-      const res = await api.getExamples(id!);
-      setExamples(res.documents);
+      const res = await api.getPractices(id!);
+      setPractices(res.documents);
     } catch (error) {
-      console.error('Error fetching examples', error);
+      console.error('Error fetching practices', error);
     }
   }, [id]);
 
@@ -152,12 +152,12 @@ const Course = () => {
       .sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [lectures, deferredSearch]);
 
-  const filteredExamples = useMemo(() => {
-    const uniqueExamples = Array.from(new Map(examples.map(e => [e.$id, e])).values());
-    return uniqueExamples
+  const filteredPractices = useMemo(() => {
+    const uniquePractices = Array.from(new Map(practices.map(e => [e.$id, e])).values());
+    return uniquePractices
       .filter(e => e.name.includes(deferredSearch))
       .sort((a, b) => a.name.localeCompare(b.name, 'he'));
-  }, [examples, deferredSearch]);
+  }, [practices, deferredSearch]);
 
   useEffect(() => {
     if (id === 'summaries') {
@@ -169,8 +169,8 @@ const Course = () => {
     fetchCourse();
     fetchSummaries();
     fetchLectures();
-    fetchExamples();
-  }, [fetchCourse, fetchSummaries, fetchLectures, fetchExamples, id]);
+    fetchPractices();
+  }, [fetchCourse, fetchSummaries, fetchLectures, fetchPractices, id]);
 
   const toggleEnrollment = async () => {
     if (!user) {
@@ -213,11 +213,11 @@ const Course = () => {
     }
   };
 
-  const onDeleteExample = async () => {
-    const res = await api.getExamples(id!);
-    setExamples(res.documents);
+  const onDeletePractice = async () => {
+    const res = await api.getPractices(id!);
+    setPractices(res.documents);
     if (res.documents.length > 0) {
-      navigate(`/course/${id}?tab=examples`);
+      navigate(`/course/${id}?tab=practices`);
     } else {
       navigate(`/course/${id}?tab=overview`);
     }
@@ -235,7 +235,7 @@ const Course = () => {
     { id: 'overview', label: 'סילבוס', icon: BookOpen, show: true },
     { id: 'summaries', label: 'סיכומים', icon: FileText, show: summaries.length > 0 },
     { id: 'lectures', label: 'הרצאות', icon: List, show: lectures.length > 0 },
-    { id: 'examples', label: 'דוגמאות', icon: List, show: examples.length > 0 },
+    { id: 'practices', label: 'תרגולים', icon: List, show: practices.length > 0 },
     { id: 'definitions', label: 'הגדרות', icon: List, show: !!course.definitionsID },
     { id: 'claims', label: 'משפטים', icon: Bookmark, show: !!course.claimsID },
   ];
@@ -396,7 +396,7 @@ const Course = () => {
             )}
           </div>
         </div>
-      ) : currentTab === 'examples' ? (
+      ) : currentTab === 'practices' ? (
         <div className="space-y-8">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div className="relative w-full max-w-md">
@@ -406,7 +406,7 @@ const Course = () => {
               <input
                 type="text"
                 className="block w-full pl-10 pr-12 py-3 border border-zinc-700/50 rounded-xl leading-5 bg-zinc-800/40 backdrop-blur-xl placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-all shadow-sm text-zinc-100"
-                placeholder="חיפוש דוגמאות..."
+                placeholder="חיפוש תרגולים..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -414,23 +414,23 @@ const Course = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredExamples.map((example) => (
+            {filteredPractices.map((practice) => (
               <Link 
-                key={example.$id} 
-                to={`/example/${example.$id}`}
+                key={practice.$id} 
+                to={`/practice/${practice.$id}`}
                 className="group p-6 rounded-2xl bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 shadow-sm hover:shadow-md hover:border-cyan-500 transition-all flex flex-col items-start gap-4"
               >
                 <div className="p-3 bg-cyan-900/30 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform">
                   <List className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-cyan-400 transition-colors">
-                  {example.name}
+                  {practice.name}
                 </h3>
               </Link>
             ))}
-            {filteredExamples.length === 0 && (
+            {filteredPractices.length === 0 && (
               <div className="col-span-full text-center py-12 text-zinc-500 bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-zinc-800/50">
-                לא נמצאו דוגמאות התואמים את החיפוש.
+                לא נמצאו תרגולים התואמים את החיפוש.
               </div>
             )}
           </div>
@@ -454,12 +454,12 @@ const Course = () => {
         onSave={() => {
           if (modalType === 'summary') fetchSummaries();
           if (modalType === 'lecture') fetchLectures();
-          if (modalType === 'example') fetchExamples();
+          if (modalType === 'practice') fetchPractices();
         }} 
         onDelete={() => {
           if (modalType === 'summary') onDeleteSummary();
           if (modalType === 'lecture') onDeleteLecture();
-          if (modalType === 'example') onDeleteExample();
+          if (modalType === 'practice') onDeletePractice();
         }}
         courseId={id}
         courseNumber={course.number}

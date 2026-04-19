@@ -7,7 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 const Course = lazy(() => import('./pages/Course'));
 const Summaries = lazy(() => import('./pages/Summaries'));
 const Summary = lazy(() => import('./pages/Summary'));
-const Example = lazy(() => import('./pages/Example'));
+const Practice = lazy(() => import('./pages/Practice'));
 const Lecture = lazy(() => import('./pages/Lecture'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -36,7 +36,7 @@ export default function App() {
               <Route path="course/:id" element={<Course />} />
               <Route path="course/:id/summaries" element={<Summaries />} />
               <Route path="summary/:id" element={<Summary />} />
-              <Route path="example/:id" element={<Example />} />
+              <Route path="practice/:id" element={<Practice />} />
               <Route path="lecture/:id" element={<Lecture />} />
               <Route path="login" element={<Login />} />
               <Route path="profile" element={<Profile />} />
