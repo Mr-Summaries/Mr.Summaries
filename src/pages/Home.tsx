@@ -5,6 +5,7 @@ import { Search, BookOpen, Plus, BookmarkPlus, BookmarkCheck } from 'lucide-reac
 import { api } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { CourseModal } from '../components/CourseModal';
+import { LoginModal } from '../components/LoginModal';
 
 const Home = () => {
   const { user, isAdmin } = useAuthStore();
@@ -15,6 +16,7 @@ const Home = () => {
   const deferredSearch = useDeferredValue(search);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -61,7 +63,10 @@ const Home = () => {
   }, [user]);
 
   const toggleEnrollment = async (courseId: string, enrollmentId: string | null) => {
-    if (!user) return;
+    if (!user) {
+      setIsLoginModalOpen(true);
+      return;
+    }
 
     try {
       if (enrollmentId) {
@@ -297,6 +302,10 @@ const Home = () => {
         isOpen={isCourseModalOpen} 
         onClose={() => setIsCourseModalOpen(false)} 
         onSave={fetchCourses} 
+      />
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </div>
   );
