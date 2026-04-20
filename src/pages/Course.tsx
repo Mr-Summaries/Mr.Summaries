@@ -9,6 +9,7 @@ import { CourseModal } from '../components/CourseModal';
 import { ContentModal } from '../components/ContentModal';
 import { AddPageModal } from '../components/AddPageModal';
 import { PdfTextRenderer } from '../components/PdfTextRenderer';
+import { LoginModal } from '../components/LoginModal';
 
 const Course = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const Course = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'summary' | 'lecture' | 'practice'>('summary');
   const [isAddPageModalOpen, setIsAddPageModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [summaries, setSummaries] = useState<any[]>([]);
   const [lectures, setLectures] = useState<any[]>([]);
   const [practices, setPractices] = useState<any[]>([]);
@@ -174,7 +176,7 @@ const Course = () => {
 
   const toggleEnrollment = async () => {
     if (!user) {
-      navigate('/login');
+      setIsLoginModalOpen(true);
       return;
     }
 
@@ -474,6 +476,11 @@ const Course = () => {
           setModalType(type);
           setIsModalOpen(true);
         }}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </div>
   );
